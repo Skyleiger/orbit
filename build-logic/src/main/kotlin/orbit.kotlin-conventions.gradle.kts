@@ -1,5 +1,4 @@
 plugins {
-  id("orbit.base-conventions")
   kotlin("jvm")
 }
 

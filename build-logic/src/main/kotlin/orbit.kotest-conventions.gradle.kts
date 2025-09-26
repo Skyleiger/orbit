@@ -3,7 +3,6 @@ import com.adarshr.gradle.testlogger.theme.ThemeType
 val libs = extensions.getByType<VersionCatalogsExtension>().named("libs")
 
 plugins {
-  id("orbit.base-conventions")
   id("orbit.kotlin-conventions")
   id("com.adarshr.test-logger")
 }
