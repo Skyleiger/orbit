@@ -1,3 +1,14 @@
+rootProject.name = "build-logic"
+
+// Plugin repositories configuration
+pluginManagement {
+  repositories {
+    gradlePluginPortal()
+    mavenCentral()
+  }
+}
+
+// Dependency repositories configuration
 @Suppress("UnstableApiUsage")
 dependencyResolutionManagement {
   repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
@@ -11,5 +22,3 @@ dependencyResolutionManagement {
     }
   }
 }
-
-rootProject.name = "build-logic"
