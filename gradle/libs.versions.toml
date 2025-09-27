@@ -1,9 +1,5 @@
-# Version catalog is a central place for you to declare and version dependencies
-# https://docs.gradle.org/current/userguide/platforms.html#sub:version-catalog
-# https://docs.gradle.org/current/userguide/platforms.html#sub::toml-dependencies-format
-
 [versions]
-kotlin = "2.2.0"
+kotlin = "2.2.20"
 kotlinx-datetime = "0.6.1"
 kotlinx-serialization-json = "1.7.3"
 kotlinx-coroutines = "1.9.0"
@@ -33,13 +29,13 @@ jackson-module-kotlin = { module = "com.fasterxml.jackson.module:jackson-module-
 jackson-datatype-jsr310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310", version.ref = "jackson" }
 test-logger-plugin = { module = "com.adarshr:gradle-test-logger-plugin", version.ref = "testLogger" }
 
-# Libraries can be bundled together for easier import
 [bundles]
 kotlinx-ecosystem = ["kotlinx-datetime", "kotlinx-serialization", "kotlinx-coroutines"]
 kotest = ["kotest-runner-junit5", "kotest-assertions-core", "kotest-assertions-json", "kotest-property"]
 jackson = ["jackson-databind", "jackson-module-kotlin", "jackson-datatype-jsr310"]
 
 [plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-plugin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 kotlin-plugin-spring = { id = "org.jetbrains.kotlin.plugin.spring", version.ref = "kotlin" }
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
