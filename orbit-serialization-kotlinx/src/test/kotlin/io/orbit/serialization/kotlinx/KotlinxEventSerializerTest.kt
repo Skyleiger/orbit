@@ -4,11 +4,9 @@ import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.equals.shouldBeEqual
 import io.orbit.core.event.EventEnvelope
 import io.orbit.core.event.EventMetadata
-import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 import kotlinx.serialization.Serializable
 
-@OptIn(ExperimentalTime::class)
 class KotlinxEventSerializerTest : StringSpec({
   val serializer = KotlinxEventSerializer()
 
@@ -40,7 +38,6 @@ class KotlinxEventSerializerTest : StringSpec({
 @Serializable
 data class TestEvent(val message: String, val number: Int)
 
-@OptIn(ExperimentalTime::class)
 object TestFixtures {
   private val testTimestamp = Instant.parse("2021-08-04T20:00:00Z")
   

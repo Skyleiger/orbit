@@ -1,9 +1,7 @@
 package io.orbit.core.event
 
-import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-@OptIn(ExperimentalTime::class)
 data class EventMetadata(
   val eventId: String,
   val eventType: String,

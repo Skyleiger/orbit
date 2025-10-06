@@ -5,10 +5,8 @@ import com.fasterxml.jackson.databind.module.SimpleModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.orbit.core.event.EventEnvelope
 import io.orbit.core.serializer.EventSerializer
-import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-@OptIn(ExperimentalTime::class)
 class JacksonEventSerializer(
   private val objectMapper: ObjectMapper = createDefaultObjectMapper()
 ) : EventSerializer {
