@@ -1,5 +1,6 @@
 plugins {
   kotlin("jvm")
+  id("org.jlleitschuh.gradle.ktlint")
 }
 
 kotlin {
@@ -8,4 +9,9 @@ kotlin {
   compilerOptions {
     optIn.add("kotlin.time.ExperimentalTime")
   }
+}
+
+ktlint {
+  verbose.set(true)
+  outputToConsole.set(true)
 }
