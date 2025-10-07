@@ -1,7 +1,13 @@
 package io.orbit.core.transport
 
 interface MessageTransport {
-  suspend fun send(destination: String, message: TransportMessage)
+    suspend fun send(
+        destination: String,
+        message: TransportMessage,
+    )
 
-  fun subscribe(source: String, handler: MessageHandler)
+    fun subscribe(
+        source: String,
+        handler: MessageHandler,
+    )
 }

@@ -6,7 +6,11 @@ import com.fasterxml.jackson.databind.SerializerProvider
 import kotlin.time.Instant
 
 class KotlinInstantSerializer : JsonSerializer<Instant>() {
-  override fun serialize(value: Instant, gen: JsonGenerator, serializers: SerializerProvider) {
-    gen.writeString(value.toString())
-  }
+    override fun serialize(
+        value: Instant,
+        gen: JsonGenerator,
+        serializers: SerializerProvider,
+    ) {
+        gen.writeString(value.toString())
+    }
 }

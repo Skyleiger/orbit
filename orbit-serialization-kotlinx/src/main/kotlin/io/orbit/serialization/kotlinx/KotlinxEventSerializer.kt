@@ -8,33 +8,36 @@ import kotlinx.serialization.serializer
 import kotlin.reflect.full.createType
 
 class KotlinxEventSerializer(
-  private val json: Json = Json {
-    prettyPrint = false
-    ignoreUnknownKeys = true
-  }
+    private val json: Json =
+        Json {
+            prettyPrint = false
+            ignoreUnknownKeys = true
+        },
 ) : EventSerializer {
+    override fun <T : Any> serialize(envelope: EventEnvelope<T>): ByteArray {
+        val eventClass = envelope.event::class
+        val eventSerializer = serializer(eventClass.createType())
 
-  override fun <T : Any> serialize(envelope: EventEnvelope<T>): ByteArray {
-    val eventClass = envelope.event::class
-    val eventSerializer = serializer(eventClass.createType())
+        @Suppress("UNCHECKED_CAST")
+        val typedEventSerializer = eventSerializer as KSerializer<T>
+        val envelopeSerializer = EventEnvelopeSerializer(typedEventSerializer)
 
-    @Suppress("UNCHECKED_CAST")
-    val typedEventSerializer = eventSerializer as KSerializer<T>
-    val envelopeSerializer = EventEnvelopeSerializer(typedEventSerializer)
+        val jsonString = json.encodeToString(envelopeSerializer, envelope)
+        return jsonString.toByteArray(Charsets.UTF_8)
+    }
 
-    val jsonString = json.encodeToString(envelopeSerializer, envelope)
-    return jsonString.toByteArray(Charsets.UTF_8)
-  }
+    override fun <T : Any> deserialize(
+        data: ByteArray,
+        eventType: Class<T>,
+    ): EventEnvelope<T> {
+        val jsonString = data.toString(Charsets.UTF_8)
+        val eventKType = eventType.kotlin.createType()
+        val eventSerializer = serializer(eventKType)
 
-  override fun <T : Any> deserialize(data: ByteArray, eventType: Class<T>): EventEnvelope<T> {
-    val jsonString = data.toString(Charsets.UTF_8)
-    val eventKType = eventType.kotlin.createType()
-    val eventSerializer = serializer(eventKType)
+        @Suppress("UNCHECKED_CAST")
+        val typedEventSerializer = eventSerializer as KSerializer<T>
+        val envelopeSerializer = EventEnvelopeSerializer(typedEventSerializer)
 
-    @Suppress("UNCHECKED_CAST")
-    val typedEventSerializer = eventSerializer as KSerializer<T>
-    val envelopeSerializer = EventEnvelopeSerializer(typedEventSerializer)
-
-    return json.decodeFromString(envelopeSerializer, jsonString)
-  }
+        return json.decodeFromString(envelopeSerializer, jsonString)
+    }
 }

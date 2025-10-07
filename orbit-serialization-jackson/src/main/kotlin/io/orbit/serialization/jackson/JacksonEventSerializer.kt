@@ -8,28 +8,29 @@ import io.orbit.core.serializer.EventSerializer
 import kotlin.time.Instant
 
 class JacksonEventSerializer(
-  private val objectMapper: ObjectMapper = createDefaultObjectMapper()
+    private val objectMapper: ObjectMapper = createDefaultObjectMapper(),
 ) : EventSerializer {
+    override fun <T : Any> serialize(envelope: EventEnvelope<T>): ByteArray = objectMapper.writeValueAsBytes(envelope)
 
-  override fun <T : Any> serialize(envelope: EventEnvelope<T>): ByteArray {
-    return objectMapper.writeValueAsBytes(envelope)
-  }
-
-  override fun <T : Any> deserialize(data: ByteArray, eventType: Class<T>): EventEnvelope<T> {
-    val envelopeType = objectMapper.typeFactory.constructParametricType(EventEnvelope::class.java, eventType)
-    return objectMapper.readValue(data, envelopeType)
-  }
-
-  companion object {
-    private fun createDefaultObjectMapper(): ObjectMapper {
-      val module = SimpleModule().apply {
-        addSerializer(Instant::class.java, KotlinInstantSerializer())
-        addDeserializer(Instant::class.java, KotlinInstantDeserializer())
-      }
-      
-      return jacksonObjectMapper().apply {
-        registerModule(module)
-      }
+    override fun <T : Any> deserialize(
+        data: ByteArray,
+        eventType: Class<T>,
+    ): EventEnvelope<T> {
+        val envelopeType = objectMapper.typeFactory.constructParametricType(EventEnvelope::class.java, eventType)
+        return objectMapper.readValue(data, envelopeType)
     }
-  }
+
+    companion object {
+        private fun createDefaultObjectMapper(): ObjectMapper {
+            val module =
+                SimpleModule().apply {
+                    addSerializer(Instant::class.java, KotlinInstantSerializer())
+                    addDeserializer(Instant::class.java, KotlinInstantDeserializer())
+                }
+
+            return jacksonObjectMapper().apply {
+                registerModule(module)
+            }
+        }
+    }
 }

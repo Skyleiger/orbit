@@ -6,7 +6,8 @@ import com.fasterxml.jackson.databind.JsonDeserializer
 import kotlin.time.Instant
 
 class KotlinInstantDeserializer : JsonDeserializer<Instant>() {
-  override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Instant {
-    return Instant.parse(p.text)
-  }
+    override fun deserialize(
+        p: JsonParser,
+        ctxt: DeserializationContext,
+    ): Instant = Instant.parse(p.text)
 }
