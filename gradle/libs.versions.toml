@@ -47,4 +47,3 @@ versions = { id = "com.github.ben-manes.versions", version.ref = "versions" }
 
 # Convention Plugins (typsicher)
 orbit-kotlin-conventions = { id = "orbit.kotlin-conventions" }
-orbit-kotest-conventions = { id = "orbit.kotest-conventions" }
