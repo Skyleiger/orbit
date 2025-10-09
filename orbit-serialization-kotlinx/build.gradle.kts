@@ -5,6 +5,6 @@ plugins {
 
 dependencies {
     api(projects.orbitCore)
-    implementation(libs.kotlinx.serialization)
+    implementation(libs.kotlinx.serialization.json)
     implementation(kotlin("reflect"))
 }
