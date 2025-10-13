@@ -27,7 +27,7 @@ jobs:
 
       # Validate Gradle wrapper
       - name: Validate Gradle wrapper
-        uses: gradle/wrapper-validation-action@v2
+        uses: gradle/wrapper-validation-action@v3
 
       # Make Gradle wrapper executable
       - name: Make Gradle wrapper executable
