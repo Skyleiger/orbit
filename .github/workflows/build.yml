@@ -31,6 +31,10 @@ jobs:
           validate-wrappers: true
           dependency-graph: generate-and-submit
 
+      # Make gradlew executable
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
       # Build JAR file with Gradle
       - name: Build JAR file
         run: ./gradlew build
