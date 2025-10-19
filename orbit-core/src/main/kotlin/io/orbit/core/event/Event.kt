@@ -1,7 +1,7 @@
-package io.orbit.core
+package io.orbit.core.event
 
 @Target(AnnotationTarget.CLASS)
 @Retention(AnnotationRetention.RUNTIME)
-annotation class EventType(
-    val name: String,
+annotation class Event(
+    val type: String,
 )
