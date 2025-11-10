@@ -6,7 +6,7 @@ spring-boot = "3.5.7"
 kotest = "6.0.4"
 testLogger = "4.0.0"
 versions = "0.53.0"
-jackson = "2.20.0"
+jackson = "2.20.1"
 ktlint = "13.1.0"
 detekt = "1.23.8"
 
