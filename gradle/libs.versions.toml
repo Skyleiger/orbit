@@ -1,12 +1,12 @@
 [versions]
-kotlin = "2.2.20"
+kotlin = "2.2.21"
 kotlinx-serialization-json = "1.9.0"
 kotlinx-coroutines = "1.10.2"
-spring-boot = "3.5.6"
-kotest = "6.0.3"
+spring-boot = "3.5.7"
+kotest = "6.0.4"
 testLogger = "4.0.0"
 versions = "0.53.0"
-jackson = "2.20.0"
+jackson = "2.20.1"
 ktlint = "13.1.0"
 detekt = "1.23.8"
 
