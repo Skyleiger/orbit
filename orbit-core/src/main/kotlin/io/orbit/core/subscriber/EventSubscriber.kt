@@ -11,9 +11,9 @@ import io.orbit.core.transport.MessageHandler
 import io.orbit.core.transport.MessageTransport
 
 interface EventSubscriber {
-    fun subscribeAll()
+    suspend fun subscribeAll()
 
-    fun unsubscribeAll()
+    suspend fun unsubscribeAll()
 }
 
 internal class DefaultEventSubscriber(
@@ -22,7 +22,7 @@ internal class DefaultEventSubscriber(
     private val serializer: EventSerializer,
     private val transport: MessageTransport,
 ) : EventSubscriber {
-    override fun subscribeAll() {
+    override suspend fun subscribeAll() {
         eventRegistry.definitions.forEach { definition ->
             transport.subscribe(
                 eventType = definition.eventType.value,
@@ -31,7 +31,7 @@ internal class DefaultEventSubscriber(
         }
     }
 
-    override fun unsubscribeAll() {
+    override suspend fun unsubscribeAll() {
         eventRegistry.definitions.forEach { definition ->
             transport.unsubscribe(definition.eventType.value)
         }

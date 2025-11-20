@@ -36,7 +36,6 @@ class InMemoryTransport : MessageTransport {
     }
 
     override suspend fun unsubscribe(eventType: String) {
-        checkIsConnected()
         handlers.remove(eventType)
     }
 
