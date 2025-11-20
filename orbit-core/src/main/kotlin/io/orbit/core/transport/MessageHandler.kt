@@ -1,5 +1,5 @@
 package io.orbit.core.transport
 
 fun interface MessageHandler {
-    fun onMessage(message: TransportMessage)
+    suspend fun handle(message: TransportMessage)
 }

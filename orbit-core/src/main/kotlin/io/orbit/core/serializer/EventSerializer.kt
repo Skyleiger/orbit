@@ -3,10 +3,10 @@ package io.orbit.core.serializer
 import io.orbit.core.event.EventEnvelope
 
 interface EventSerializer {
-    fun <T : Any> serialize(envelope: EventEnvelope<T>): ByteArray
+    fun <T : Any> serialize(envelope: EventEnvelope<T>): SerializedEvent
 
     fun <T : Any> deserialize(
-        data: ByteArray,
-        eventType: Class<T>,
+        serialized: SerializedEvent,
+        eventClass: Class<T>,
     ): EventEnvelope<T>
 }
