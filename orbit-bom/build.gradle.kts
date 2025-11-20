@@ -1,11 +1,14 @@
 plugins {
-  `java-platform`
+    `java-platform`
 }
 
 dependencies {
-  constraints {
-    rootProject.subprojects.filter { it != project }.forEach {
-      api(it)
+    constraints {
+        rootProject.subprojects
+            .filter { it != project }
+            .filterNot { it.path == projects.orbitTests.path }
+            .forEach {
+                api(it)
+            }
     }
-  }
 }
