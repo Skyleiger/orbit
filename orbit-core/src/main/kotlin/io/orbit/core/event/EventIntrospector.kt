@@ -8,6 +8,13 @@ interface EventIntrospector {
 
 class ReflectionEventIntrospector : EventIntrospector {
     override fun introspect(eventClass: KClass<*>): EventDefinition {
-        TODO("Not yet implemented")
+        val eventAnnotation =
+            eventClass.annotations.find { it is Event } as? Event
+                ?: error("Class ${eventClass.simpleName} must be annotated with @Event")
+
+        return DefaultEventDefinition(
+            eventType = EventType(eventAnnotation.type),
+            eventClass = eventClass,
+        )
     }
 }
