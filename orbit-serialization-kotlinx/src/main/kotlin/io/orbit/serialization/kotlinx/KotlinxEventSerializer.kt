@@ -2,6 +2,7 @@ package io.orbit.serialization.kotlinx
 
 import io.orbit.core.event.EventEnvelope
 import io.orbit.core.serializer.EventSerializer
+import io.orbit.core.serializer.SerializedEvent
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.serializer
@@ -14,7 +15,7 @@ class KotlinxEventSerializer(
             ignoreUnknownKeys = true
         },
 ) : EventSerializer {
-    override fun <T : Any> serialize(envelope: EventEnvelope<T>): ByteArray {
+    override fun <T : Any> serialize(envelope: EventEnvelope<T>): SerializedEvent {
         val eventClass = envelope.event::class
         val eventSerializer = serializer(eventClass.createType())
 
@@ -23,15 +24,26 @@ class KotlinxEventSerializer(
         val envelopeSerializer = EventEnvelopeSerializer(typedEventSerializer)
 
         val jsonString = json.encodeToString(envelopeSerializer, envelope)
-        return jsonString.toByteArray(Charsets.UTF_8)
+        return SerializedEvent(
+            data = jsonString.toByteArray(Charsets.UTF_8),
+            contentType = CONTENT_TYPE,
+            contentEncoding = CONTENT_ENCODING,
+        )
     }
 
     override fun <T : Any> deserialize(
-        data: ByteArray,
-        eventType: Class<T>,
+        serialized: SerializedEvent,
+        eventClass: Class<T>,
     ): EventEnvelope<T> {
-        val jsonString = data.toString(Charsets.UTF_8)
-        val eventKType = eventType.kotlin.createType()
+        require(serialized.contentType == CONTENT_TYPE) {
+            "Unsupported content type: ${serialized.contentType}. Expected: $CONTENT_TYPE"
+        }
+        require(serialized.contentEncoding == CONTENT_ENCODING) {
+            "Unsupported content encoding: ${serialized.contentEncoding}. Expected: $CONTENT_ENCODING"
+        }
+
+        val jsonString = serialized.data.toString(Charsets.UTF_8)
+        val eventKType = eventClass.kotlin.createType()
         val eventSerializer = serializer(eventKType)
 
         @Suppress("UNCHECKED_CAST")
@@ -39,5 +51,10 @@ class KotlinxEventSerializer(
         val envelopeSerializer = EventEnvelopeSerializer(typedEventSerializer)
 
         return json.decodeFromString(envelopeSerializer, jsonString)
+    }
+
+    companion object {
+        const val CONTENT_TYPE = "application/json"
+        const val CONTENT_ENCODING = "utf-8"
     }
 }
