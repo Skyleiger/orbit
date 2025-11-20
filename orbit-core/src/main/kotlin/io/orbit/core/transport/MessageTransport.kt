@@ -11,12 +11,12 @@ interface MessageTransport : AutoCloseable {
 
     suspend fun send(message: TransportMessage)
 
-    fun subscribe(
+    suspend fun subscribe(
         eventType: String,
         handler: MessageHandler,
     )
 
-    fun unsubscribe(eventType: String)
+    suspend fun unsubscribe(eventType: String)
 
     override fun close() {
         runBlocking { disconnect() }

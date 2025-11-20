@@ -5,44 +5,55 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.orbit.core.transport.MessageHandler
 import io.orbit.core.transport.TransportMessage
+import kotlinx.coroutines.delay
 
 class InMemoryTransportTest :
     StringSpec({
         "should send message to subscribed handler" {
             val transport = InMemoryTransport()
-            val destination = "test-destination"
+            transport.connect()
+            val eventType = "test.event"
             val message =
                 TransportMessage(
-                    routingKey = "test.route",
-                    payload = "test message".toByteArray(),
+                    messageId = "msg-1",
+                    eventType = eventType,
+                    contentType = "application/json",
+                    contentEncoding = "utf-8",
+                    body = "test message".toByteArray(),
                 )
             var receivedMessage: TransportMessage? = null
 
             val handler = MessageHandler { receivedMessage = it }
-            transport.subscribe(destination, handler)
+            transport.subscribe(eventType, handler)
 
-            transport.send(destination, message)
+            transport.send(message)
+            delay(10)
 
             receivedMessage shouldBe message
         }
 
-        "should send message to multiple handlers for same destination" {
+        "should send message to multiple handlers for same eventType" {
             val transport = InMemoryTransport()
-            val destination = "test-destination"
+            transport.connect()
+            val eventType = "test.event"
             val message =
                 TransportMessage(
-                    routingKey = "test.route",
-                    payload = "test message".toByteArray(),
+                    messageId = "msg-1",
+                    eventType = eventType,
+                    contentType = "application/json",
+                    contentEncoding = "utf-8",
+                    body = "test message".toByteArray(),
                 )
             val receivedMessages = mutableListOf<TransportMessage>()
 
             val handler1 = MessageHandler { receivedMessages.add(it) }
             val handler2 = MessageHandler { receivedMessages.add(it) }
 
-            transport.subscribe(destination, handler1)
-            transport.subscribe(destination, handler2)
+            transport.subscribe(eventType, handler1)
+            transport.subscribe(eventType, handler2)
 
-            transport.send(destination, message)
+            transport.send(message)
+            delay(10)
 
             receivedMessages shouldHaveSize 2
             receivedMessages.forEach { it shouldBe message }
@@ -50,74 +61,88 @@ class InMemoryTransportTest :
 
         "should not send message when no handlers are subscribed" {
             val transport = InMemoryTransport()
-            val destination = "test-destination"
+            transport.connect()
             val message =
                 TransportMessage(
-                    routingKey = "test.route",
-                    payload = "test message".toByteArray(),
+                    messageId = "msg-1",
+                    eventType = "unsubscribed.event",
+                    contentType = "application/json",
+                    contentEncoding = "utf-8",
+                    body = "test message".toByteArray(),
                 )
 
-            transport.send(destination, message)
+            transport.send(message)
+            delay(10)
         }
 
-        "should handle handler exceptions gracefully" {
+        "should handle multiple event types independently" {
             val transport = InMemoryTransport()
-            val destination = "test-destination"
-            val message =
+            transport.connect()
+            val eventType1 = "event.type1"
+            val eventType2 = "event.type2"
+            val message1 =
                 TransportMessage(
-                    routingKey = "test.route",
-                    payload = "test message".toByteArray(),
+                    messageId = "msg-1",
+                    eventType = eventType1,
+                    contentType = "application/json",
+                    contentEncoding = "utf-8",
+                    body = "message1".toByteArray(),
                 )
-            var handlerCalled = false
-
-            val throwingHandler = MessageHandler { throw RuntimeException("Handler error") }
-            val normalHandler = MessageHandler { handlerCalled = true }
-
-            transport.subscribe(destination, throwingHandler)
-            transport.subscribe(destination, normalHandler)
-
-            transport.send(destination, message)
-
-            handlerCalled shouldBe true
-        }
-
-        "should send message with headers" {
-            val transport = InMemoryTransport()
-            val destination = "test-destination"
-            val headers = mapOf("header1" to "value1", "header2" to "value2")
-            val message =
+            val message2 =
                 TransportMessage(
-                    routingKey = "test.route",
-                    payload = "test message".toByteArray(),
-                    headers = headers,
+                    messageId = "msg-2",
+                    eventType = eventType2,
+                    contentType = "application/json",
+                    contentEncoding = "utf-8",
+                    body = "message2".toByteArray(),
                 )
-            var receivedMessage: TransportMessage? = null
-
-            val handler = MessageHandler { receivedMessage = it }
-            transport.subscribe(destination, handler)
-
-            transport.send(destination, message)
-
-            receivedMessage?.headers shouldBe headers
-        }
-
-        "should handle multiple destinations independently" {
-            val transport = InMemoryTransport()
-            val destination1 = "destination1"
-            val destination2 = "destination2"
-            val message1 = TransportMessage(routingKey = "route1", payload = "message1".toByteArray())
-            val message2 = TransportMessage(routingKey = "route2", payload = "message2".toByteArray())
 
             var receivedMessage1: TransportMessage? = null
             var receivedMessage2: TransportMessage? = null
 
-            transport.subscribe(destination1) { receivedMessage1 = it }
-            transport.subscribe(destination2) { receivedMessage2 = it }
+            transport.subscribe(eventType1) { receivedMessage1 = it }
+            transport.subscribe(eventType2) { receivedMessage2 = it }
 
-            transport.send(destination1, message1)
-            transport.send(destination2, message2)
+            transport.send(message1)
+            transport.send(message2)
+            delay(10)
 
             receivedMessage1 shouldBe message1
             receivedMessage2 shouldBe message2
+        }
+
+        "should unsubscribe event type" {
+            val transport = InMemoryTransport()
+            transport.connect()
+            val eventType = "test.event"
+            val message =
+                TransportMessage(
+                    messageId = "msg-1",
+                    eventType = eventType,
+                    contentType = "application/json",
+                    contentEncoding = "utf-8",
+                    body = "test message".toByteArray(),
+                )
+            var receivedMessage: TransportMessage? = null
+
+            transport.subscribe(eventType) { receivedMessage = it }
+            transport.unsubscribe(eventType)
+
+            transport.send(message)
+            delay(10)
+
+            receivedMessage shouldBe null
+        }
+
+        "should connect and disconnect" {
+            val transport = InMemoryTransport()
+
+            transport.isConnected() shouldBe false
+
+            transport.connect()
+            transport.isConnected() shouldBe true
+
+            transport.disconnect()
+            transport.isConnected() shouldBe false
         }
     })

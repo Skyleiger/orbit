@@ -6,24 +6,41 @@ import io.orbit.core.transport.TransportMessage
 
 class InMemoryTransport : MessageTransport {
     private val handlers = mutableMapOf<String, MutableList<MessageHandler>>()
+    private var isConnected = false
 
-    override suspend fun send(
-        destination: String,
-        message: TransportMessage,
-    ) {
-        handlers[destination]?.forEach { handler ->
-            try {
-                handler.onMessage(message)
-            } catch (e: Exception) {
-                println("Error in handler: ${e.message}")
-            }
+    override suspend fun connect() {
+        isConnected = true
+    }
+
+    override suspend fun disconnect() {
+        isConnected = false
+        handlers.clear()
+    }
+
+    override suspend fun isConnected(): Boolean = isConnected
+
+    override suspend fun send(message: TransportMessage) {
+        checkIsConnected()
+
+        handlers[message.eventType]?.forEach { handler ->
+            handler.handle(message)
         }
     }
 
-    override fun subscribe(
-        source: String,
+    override suspend fun subscribe(
+        eventType: String,
         handler: MessageHandler,
     ) {
-        handlers.computeIfAbsent(source) { mutableListOf() }.add(handler)
+        checkIsConnected()
+        handlers.computeIfAbsent(eventType) { mutableListOf() }.add(handler)
+    }
+
+    override suspend fun unsubscribe(eventType: String) {
+        checkIsConnected()
+        handlers.remove(eventType)
+    }
+
+    private suspend fun checkIsConnected() {
+        check(isConnected()) { "Transport not connected" }
     }
 }
