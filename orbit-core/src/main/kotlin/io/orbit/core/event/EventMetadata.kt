@@ -1,10 +1,10 @@
 package io.orbit.core.event
 
-import kotlin.time.Duration
+import kotlin.time.Instant
 
 data class EventMetadata(
     val eventId: String,
     val eventType: String,
-    val timestamp: Duration,
+    val timestamp: Instant,
     val source: String,
 )

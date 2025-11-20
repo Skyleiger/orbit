@@ -1,6 +1,6 @@
 package io.orbit.core.service
 
-import java.util.UUID
+import kotlin.uuid.Uuid
 
 @JvmInline
 value class ServiceName(
@@ -29,7 +29,7 @@ value class ServiceId(
     }
 
     companion object {
-        fun random(): ServiceId = ServiceId(UUID.randomUUID().toString())
+        fun random(): ServiceId = ServiceId(Uuid.random().toString())
 
         private val UUID_PATTERN =
             "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}".toRegex()

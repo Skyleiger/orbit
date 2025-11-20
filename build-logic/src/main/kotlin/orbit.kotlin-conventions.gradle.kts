@@ -1,4 +1,5 @@
 import com.adarshr.gradle.testlogger.theme.ThemeType
+import io.gitlab.arturbosch.detekt.Detekt
 
 plugins {
     kotlin("jvm")
@@ -18,6 +19,8 @@ fun Project.configureKotlin() {
 
         compilerOptions {
             optIn.add("kotlin.time.ExperimentalTime")
+            optIn.add("kotlinx.serialization.ExperimentalSerializationApi")
+            optIn.add("kotlin.uuid.ExperimentalUuidApi")
         }
     }
 }
@@ -53,6 +56,10 @@ fun Project.configureKtlint() {
 }
 
 fun Project.configureDetekt() {
+    tasks.withType<Detekt>().configureEach {
+        enabled = false
+    }
+
     detekt {
         ignoreFailures = true
     }

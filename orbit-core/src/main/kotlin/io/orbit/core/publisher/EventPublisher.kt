@@ -7,8 +7,8 @@ import io.orbit.core.serializer.EventSerializer
 import io.orbit.core.service.ServiceIdentity
 import io.orbit.core.transport.MessageTransport
 import io.orbit.core.transport.TransportMessage
-import java.util.UUID
-import kotlin.time.TimeSource
+import kotlin.time.Clock
+import kotlin.uuid.Uuid
 
 interface EventPublisher {
     suspend fun publish(event: Any)
@@ -27,9 +27,9 @@ internal class DefaultEventPublisher(
 
         val metadata =
             EventMetadata(
-                eventId = UUID.randomUUID().toString(),
+                eventId = Uuid.random().toString(),
                 eventType = eventDefinition.eventType.value,
-                timestamp = TimeSource.Monotonic.markNow().elapsedNow(),
+                timestamp = Clock.System.now(),
                 source = service.source,
             )
 
