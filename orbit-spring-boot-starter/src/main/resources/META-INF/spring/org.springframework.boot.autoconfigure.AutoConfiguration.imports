@@ -1,0 +1,5 @@
+io.orbit.spring.autoconfigure.OrbitAutoConfiguration
+io.orbit.spring.autoconfigure.serialization.JacksonSerializerAutoConfiguration
+io.orbit.spring.autoconfigure.serialization.KotlinxSerializerAutoConfiguration
+io.orbit.spring.autoconfigure.transport.InMemoryTransportAutoConfiguration
+io.orbit.spring.autoconfigure.transport.RabbitMQTransportAutoConfiguration

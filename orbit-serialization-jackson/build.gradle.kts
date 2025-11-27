@@ -4,5 +4,5 @@ plugins {
 
 dependencies {
     api(projects.orbitCore)
-    implementation(libs.bundles.jackson)
+    api(libs.bundles.jackson)
 }

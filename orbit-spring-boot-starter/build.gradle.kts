@@ -5,10 +5,15 @@ plugins {
 }
 
 dependencies {
-    api(projects.orbitCore)
     implementation(libs.spring.boot.starter)
     implementation(libs.spring.boot.autoconfigure)
     annotationProcessor(libs.spring.boot.configuration.processor)
+
+    api(projects.orbitCore)
+    compileOnly(projects.orbitTransportInMemory)
+    compileOnly(projects.orbitTransportRabbitmq)
+    compileOnly(projects.orbitSerializationJackson)
+    compileOnly(projects.orbitSerializationKotlinx)
 }
 
 tasks.named("bootJar") {

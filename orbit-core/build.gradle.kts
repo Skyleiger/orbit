@@ -3,6 +3,6 @@ plugins {
 }
 
 dependencies {
-    implementation(libs.kotlinx.coroutines)
+    api(libs.kotlinx.coroutines)
     implementation(kotlin("reflect"))
 }
