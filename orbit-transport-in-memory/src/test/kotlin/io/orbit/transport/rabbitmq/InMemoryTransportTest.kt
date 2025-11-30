@@ -1,10 +1,11 @@
-package io.orbit.transport.inmemory
+package io.orbit.transport.rabbitmq
 
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.orbit.core.transport.MessageHandler
 import io.orbit.core.transport.TransportMessage
+import io.orbit.transport.inmemory.InMemoryTransport
 import kotlinx.coroutines.delay
 
 class InMemoryTransportTest :

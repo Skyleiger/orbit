@@ -1,7 +1,7 @@
 package io.orbit.spring.autoconfigure.transport
 
 import io.orbit.core.transport.MessageTransport
-import io.orbit.transport.inmemory.RabbitMQTransport
+import io.orbit.transport.rabbitmq.RabbitMQTransport
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty

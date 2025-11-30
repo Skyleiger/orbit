@@ -1,4 +1,4 @@
-package io.orbit.transport.inmemory
+package io.orbit.transport.rabbitmq
 
 import io.orbit.core.transport.MessageHandler
 import io.orbit.core.transport.MessageTransport
