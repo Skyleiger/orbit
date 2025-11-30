@@ -7,4 +7,5 @@ dependencies {
     implementation(libs.ksp.api)
 
     testImplementation(libs.compile.testing)
+    testImplementation(libs.kctfork.ksp)
 }
