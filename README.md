@@ -49,6 +49,9 @@ orbit follows a modular architecture. To use it, you need to add:
    - `orbit-serialization-jackson` - JSON serialization with Jackson
    - `orbit-serialization-kotlinx` - JSON serialization with kotlinx.serialization
 
+4. **Optional: Annotation Processor**
+   - `orbit-processor` - Compile-time processor that discovers `@Event`-annotated classes and adds metadata to the classpath for automatic event registration
+
 ### Using the BOM
 
 To ensure version compatibility across all `orbit` modules, we provide a Bill of Materials (BOM).
@@ -71,6 +74,10 @@ dependencies {
   // Serialization modules (choose one)
   implementation("io.orbit:orbit-serialization-jackson") // Jackson
   implementation("io.orbit:orbit-serialization-kotlinx") // kotlinx.serialization
+
+  // Optional: Annotation processor
+  ksp("io.orbit:orbit-processor")                        // KSP (Kotlin)
+  annotationProcessor("io.orbit:orbit-processor")        // APT (Java)
 }
 ```
 
@@ -121,6 +128,24 @@ dependencies {
     <artifactId>orbit-serialization-kotlinx</artifactId> <!-- kotlinx.serialization -->
   </dependency>
 </dependencies>
+
+<!-- Optional: Annotation processor -->
+<build>
+  <plugins>
+    <plugin>
+      <groupId>org.apache.maven.plugins</groupId>
+      <artifactId>maven-compiler-plugin</artifactId>
+      <configuration>
+        <annotationProcessorPaths>
+          <path>
+            <groupId>io.orbit</groupId>
+            <artifactId>orbit-processor</artifactId>
+          </path>
+        </annotationProcessorPaths>
+      </configuration>
+    </plugin>
+  </plugins>
+</build>
 ```
 
 ---
