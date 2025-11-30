@@ -4,8 +4,10 @@ import com.google.devtools.ksp.processing.Dependencies
 import com.google.devtools.ksp.processing.Resolver
 import com.google.devtools.ksp.processing.SymbolProcessor
 import com.google.devtools.ksp.processing.SymbolProcessorEnvironment
+import com.google.devtools.ksp.symbol.ClassKind
 import com.google.devtools.ksp.symbol.KSAnnotated
 import com.google.devtools.ksp.symbol.KSClassDeclaration
+import com.google.devtools.ksp.symbol.Modifier
 import io.orbit.core.event.Event
 import io.orbit.processor.OUTPUT_PATH
 import io.orbit.processor.writeEventsFile
@@ -42,10 +44,12 @@ class EventSymbolProcessor(
 
         val symbols = resolver.getSymbolsWithAnnotation(eventAnnotationName)
 
+        // Collect all events in this round (only concrete classes, no interfaces, enums, or abstract classes)
         // We ignore validation because we only need the class name, which is available even if the class is technically invalid.
         val events =
             symbols
                 .filterIsInstance<KSClassDeclaration>()
+                .filter { it.classKind == ClassKind.CLASS && !it.modifiers.contains(Modifier.ABSTRACT) }
                 .toList()
 
         if (events.isEmpty()) {

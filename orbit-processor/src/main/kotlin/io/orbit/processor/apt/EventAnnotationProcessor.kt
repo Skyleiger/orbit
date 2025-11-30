@@ -6,6 +6,8 @@ import io.orbit.processor.writeEventsFile
 import javax.annotation.processing.AbstractProcessor
 import javax.annotation.processing.RoundEnvironment
 import javax.lang.model.SourceVersion
+import javax.lang.model.element.ElementKind
+import javax.lang.model.element.Modifier
 import javax.lang.model.element.TypeElement
 import javax.tools.Diagnostic
 import javax.tools.StandardLocation
@@ -26,24 +28,15 @@ class EventAnnotationProcessor : AbstractProcessor() {
 
     override fun getSupportedAnnotationTypes(): MutableSet<String> = mutableSetOf(Event::class.java.canonicalName)
 
-    /**
-     * Processes the annotations in the current round.
-     *
-     * Collects [Event] annotated elements in each round and writes the accumulated list
-     * to the output file in the final processing round.
-     *
-     * @param annotations The annotation types requested to be processed.
-     * @param roundEnv Environment for information about the current and prior round.
-     * @return false, allowing other processors to also process the [Event] annotation.
-     */
     override fun process(
         annotations: MutableSet<out TypeElement>,
         roundEnv: RoundEnvironment,
     ): Boolean {
-        // Collect all events in this round
+        // Collect all events in this round (only concrete classes, no interfaces, enums, or abstract classes)
         val elements = roundEnv.getElementsAnnotatedWith(Event::class.java)
         elements
             .filterIsInstance<TypeElement>()
+            .filter { it.kind == ElementKind.CLASS && !it.modifiers.contains(Modifier.ABSTRACT) }
             .forEach { typeElement ->
                 collectedEvents.add(typeElement.qualifiedName.toString())
             }
