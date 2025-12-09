@@ -3,6 +3,7 @@ package io.orbit.transport.rabbitmq
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
+import io.orbit.core.event.EventType
 import io.orbit.core.transport.MessageHandler
 import io.orbit.core.transport.TransportMessage
 import io.orbit.transport.inmemory.InMemoryTransport
@@ -13,11 +14,11 @@ class InMemoryTransportTest :
         "should send message to subscribed handler" {
             val transport = InMemoryTransport()
             transport.connect()
-            val eventType = "test.event"
+            val eventType = EventType("test.event")
             val message =
                 TransportMessage(
                     messageId = "msg-1",
-                    eventType = eventType,
+                    eventType = eventType.value,
                     contentType = "application/json",
                     contentEncoding = "utf-8",
                     body = "test message".toByteArray(),
@@ -36,11 +37,11 @@ class InMemoryTransportTest :
         "should send message to multiple handlers for same eventType" {
             val transport = InMemoryTransport()
             transport.connect()
-            val eventType = "test.event"
+            val eventType = EventType("test.event")
             val message =
                 TransportMessage(
                     messageId = "msg-1",
-                    eventType = eventType,
+                    eventType = eventType.value,
                     contentType = "application/json",
                     contentEncoding = "utf-8",
                     body = "test message".toByteArray(),
@@ -79,12 +80,12 @@ class InMemoryTransportTest :
         "should handle multiple event types independently" {
             val transport = InMemoryTransport()
             transport.connect()
-            val eventType1 = "event.type1"
-            val eventType2 = "event.type2"
+            val eventType1 = EventType("event.type1")
+            val eventType2 = EventType("event.type2")
             val message1 =
                 TransportMessage(
                     messageId = "msg-1",
-                    eventType = eventType1,
+                    eventType = eventType1.value,
                     contentType = "application/json",
                     contentEncoding = "utf-8",
                     body = "message1".toByteArray(),
@@ -92,7 +93,7 @@ class InMemoryTransportTest :
             val message2 =
                 TransportMessage(
                     messageId = "msg-2",
-                    eventType = eventType2,
+                    eventType = eventType2.value,
                     contentType = "application/json",
                     contentEncoding = "utf-8",
                     body = "message2".toByteArray(),
@@ -115,11 +116,11 @@ class InMemoryTransportTest :
         "should unsubscribe event type" {
             val transport = InMemoryTransport()
             transport.connect()
-            val eventType = "test.event"
+            val eventType = EventType("test.event")
             val message =
                 TransportMessage(
                     messageId = "msg-1",
-                    eventType = eventType,
+                    eventType = eventType.value,
                     contentType = "application/json",
                     contentEncoding = "utf-8",
                     body = "test message".toByteArray(),

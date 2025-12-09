@@ -1,8 +1,8 @@
 package io.orbit.spring.autoconfigure.serialization
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import io.orbit.core.serializer.EventSerializer
-import io.orbit.serialization.jackson.JacksonEventSerializer
+import io.orbit.core.serializer.SerializerFactory
+import io.orbit.serialization.jackson.JacksonSerializerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
@@ -17,16 +17,11 @@ import org.springframework.context.annotation.Configuration
     havingValue = "jackson",
     matchIfMissing = true,
 )
-@ConditionalOnClass(JacksonEventSerializer::class)
+@ConditionalOnClass(JacksonSerializerFactory::class)
 class JacksonSerializerAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
-    fun jacksonEventSerializer(
+    fun jacksonSerializerFactory(
         @Autowired(required = false) objectMapper: ObjectMapper?,
-    ): EventSerializer =
-        if (objectMapper != null) {
-            JacksonEventSerializer(objectMapper)
-        } else {
-            JacksonEventSerializer()
-        }
+    ): SerializerFactory = JacksonSerializerFactory(objectMapper)
 }

@@ -1,7 +1,7 @@
 package io.orbit.spring.autoconfigure.serialization
 
-import io.orbit.core.serializer.EventSerializer
-import io.orbit.serialization.kotlinx.KotlinxEventSerializer
+import io.orbit.core.serializer.SerializerFactory
+import io.orbit.serialization.kotlinx.KotlinxSerializerFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -14,9 +14,9 @@ import org.springframework.context.annotation.Configuration
     name = ["type"],
     havingValue = "kotlinx",
 )
-@ConditionalOnClass(KotlinxEventSerializer::class)
+@ConditionalOnClass(KotlinxSerializerFactory::class)
 class KotlinxSerializerAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
-    fun kotlinxEventSerializer(): EventSerializer = KotlinxEventSerializer()
+    fun kotlinxSerializerFactory(): SerializerFactory = KotlinxSerializerFactory()
 }

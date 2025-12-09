@@ -4,8 +4,8 @@ import io.orbit.core.DefaultOrbitBuilder
 import io.orbit.core.Orbit
 import io.orbit.core.OrbitBuilder
 import io.orbit.core.handler.EventHandler
-import io.orbit.core.serializer.EventSerializer
-import io.orbit.core.transport.MessageTransport
+import io.orbit.core.serializer.SerializerFactory
+import io.orbit.core.transport.TransportFactory
 import io.orbit.spring.autoconfigure.serialization.JacksonSerializerAutoConfiguration
 import io.orbit.spring.autoconfigure.serialization.KotlinxSerializerAutoConfiguration
 import io.orbit.spring.autoconfigure.transport.InMemoryTransportAutoConfiguration
@@ -43,13 +43,13 @@ class OrbitAutoConfiguration(
     @Bean
     @ConditionalOnMissingBean
     fun orbitBuilder(
-        serializer: EventSerializer,
-        transport: MessageTransport,
+        serializerFactory: SerializerFactory,
+        transportFactory: TransportFactory,
     ): OrbitBuilder =
         DefaultOrbitBuilder()
             .service(resolveServiceName())
-            .serializer(serializer)
-            .transport(transport)
+            .serializer(serializerFactory)
+            .transport(transportFactory)
             .apply {
                 discoverEventHandlers().forEach { (eventClass, handlers) ->
                     handlers.forEach { handler ->

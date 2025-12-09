@@ -8,18 +8,18 @@ import io.orbit.core.event.ReflectionEventIntrospector
 import io.orbit.core.handler.DefaultEventHandlerRegistry
 import io.orbit.core.handler.EventHandler
 import io.orbit.core.publisher.DefaultEventPublisher
-import io.orbit.core.serializer.EventSerializer
+import io.orbit.core.serializer.SerializerFactory
 import io.orbit.core.service.ServiceIdentity
 import io.orbit.core.subscriber.DefaultEventSubscriber
-import io.orbit.core.transport.MessageTransport
+import io.orbit.core.transport.TransportFactory
 import kotlin.reflect.KClass
 
 interface OrbitBuilder {
     fun service(serviceName: String): OrbitBuilder
 
-    fun serializer(serializer: EventSerializer): OrbitBuilder
+    fun serializer(factory: SerializerFactory): OrbitBuilder
 
-    fun transport(transport: MessageTransport): OrbitBuilder
+    fun transport(factory: TransportFactory): OrbitBuilder
 
     fun event(eventClass: KClass<*>): OrbitBuilder
 
@@ -32,8 +32,8 @@ interface OrbitBuilder {
 }
 
 class DefaultOrbitBuilder : OrbitBuilder {
-    private var serializer: EventSerializer? = null
-    private var transport: MessageTransport? = null
+    private var serializerFactory: SerializerFactory? = null
+    private var transportFactory: TransportFactory? = null
     private var serviceName: String? = null
     private val events: MutableMap<KClass<*>, MutableList<EventHandler<*>>> = mutableMapOf()
 
@@ -42,13 +42,13 @@ class DefaultOrbitBuilder : OrbitBuilder {
         return this
     }
 
-    override fun serializer(serializer: EventSerializer): OrbitBuilder {
-        this.serializer = serializer
+    override fun serializer(factory: SerializerFactory): OrbitBuilder {
+        this.serializerFactory = factory
         return this
     }
 
-    override fun transport(transport: MessageTransport): OrbitBuilder {
-        this.transport = transport
+    override fun transport(factory: TransportFactory): OrbitBuilder {
+        this.transportFactory = factory
         return this
     }
 
@@ -72,20 +72,22 @@ class DefaultOrbitBuilder : OrbitBuilder {
         val eventRegistry = DefaultEventRegistry(eventDefinitions)
         val handlerRegistry = DefaultEventHandlerRegistry(handlers)
 
-        val effectiveSerializer =
-            checkNotNull(serializer) {
-                "Serializer must be provided"
-            }
-        val effectiveTransport =
-            checkNotNull(transport) {
-                "Transport must be provided"
-            }
         val effectiveServiceName =
             checkNotNull(serviceName) {
                 "Service name must be provided"
             }
 
         val service = ServiceIdentity(effectiveServiceName)
+
+        val effectiveSerializer =
+            checkNotNull(serializerFactory) {
+                "Serializer must be provided"
+            }.create(service)
+
+        val effectiveTransport =
+            checkNotNull(transportFactory) {
+                "Transport must be provided"
+            }.create(service)
 
         val eventPublisher =
             DefaultEventPublisher(

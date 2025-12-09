@@ -5,10 +5,9 @@ import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.orbit.core.event.Event
-import io.orbit.core.handler.EventHandler
 import io.orbit.core.orbit
-import io.orbit.serialization.jackson.JacksonEventSerializer
-import io.orbit.transport.inmemory.InMemoryTransport
+import io.orbit.serialization.jackson.JacksonSerializerFactory
+import io.orbit.transport.inmemory.InMemoryTransportFactory
 import kotlinx.coroutines.delay
 
 @Event("test.user.created")
@@ -26,16 +25,14 @@ data class UserUpdatedEvent(
 class OrbitIntegrationTest :
     FunSpec({
         test("should publish and receive event via InMemoryTransport") {
-            // Given: Shared transport
-            val transport = InMemoryTransport()
-
+            val transport = InMemoryTransportFactory()
             val receivedEvents = mutableListOf<UserCreatedEvent>()
 
             // Publisher Orbit
             val publisherOrbit =
                 orbit {
                     service("publisher-service")
-                    serializer(JacksonEventSerializer())
+                    serializer(JacksonSerializerFactory())
                     transport(transport)
 
                     event(UserCreatedEvent::class)
@@ -45,7 +42,7 @@ class OrbitIntegrationTest :
             val subscriberOrbit =
                 orbit {
                     service("subscriber-service")
-                    serializer(JacksonEventSerializer())
+                    serializer(JacksonSerializerFactory())
                     transport(transport)
 
                     event(UserCreatedEvent::class)
@@ -82,16 +79,14 @@ class OrbitIntegrationTest :
         }
 
         test("should handle multiple event types") {
-            // Given
-            val transport = InMemoryTransport()
-
+            val transport = InMemoryTransportFactory()
             val receivedUserCreated = mutableListOf<UserCreatedEvent>()
             val receivedUserUpdated = mutableListOf<UserUpdatedEvent>()
 
             val publisherOrbit =
                 orbit {
                     service("publisher")
-                    serializer(JacksonEventSerializer())
+                    serializer(JacksonSerializerFactory())
                     transport(transport)
 
                     event(UserCreatedEvent::class)
@@ -101,7 +96,7 @@ class OrbitIntegrationTest :
             val subscriberOrbit =
                 orbit {
                     service("subscriber")
-                    serializer(JacksonEventSerializer())
+                    serializer(JacksonSerializerFactory())
                     transport(transport)
 
                     event(UserCreatedEvent::class)
@@ -138,33 +133,24 @@ class OrbitIntegrationTest :
         }
 
         test("should support multiple handlers for same event") {
-            // Given
-            val transport = InMemoryTransport()
-
             val handler1Events = mutableListOf<UserCreatedEvent>()
             val handler2Events = mutableListOf<UserCreatedEvent>()
 
             val subscriberOrbit =
                 orbit {
                     service("subscriber")
-                    serializer(JacksonEventSerializer())
-                    transport(transport)
+                    serializer(JacksonSerializerFactory())
+                    transport(InMemoryTransportFactory())
 
                     event(UserCreatedEvent::class)
 
-                    handler(
-                        UserCreatedEvent::class,
-                        EventHandler { event ->
-                            handler1Events.add(event)
-                        },
-                    )
+                    handler(UserCreatedEvent::class) { event ->
+                        handler1Events.add(event)
+                    }
 
-                    handler(
-                        UserCreatedEvent::class,
-                        EventHandler { event ->
-                            handler2Events.add(event)
-                        },
-                    )
+                    handler(UserCreatedEvent::class) { event ->
+                        handler2Events.add(event)
+                    }
                 }
 
             subscriberOrbit.connect()
@@ -189,8 +175,8 @@ class OrbitIntegrationTest :
             val orbit1 =
                 orbit {
                     service("test-service")
-                    serializer(JacksonEventSerializer())
-                    transport(InMemoryTransport())
+                    serializer(JacksonSerializerFactory())
+                    transport(InMemoryTransportFactory())
 
                     event(UserCreatedEvent::class)
                 }
@@ -198,8 +184,8 @@ class OrbitIntegrationTest :
             val orbit2 =
                 orbit {
                     service("test-service")
-                    serializer(JacksonEventSerializer())
-                    transport(InMemoryTransport())
+                    serializer(JacksonSerializerFactory())
+                    transport(InMemoryTransportFactory())
 
                     event(UserCreatedEvent::class)
                 }
@@ -217,25 +203,20 @@ class OrbitIntegrationTest :
         }
 
         test("should preserve event metadata") {
-            // Given
-            val transport = InMemoryTransport()
-
+            // Given: Using factory pattern
             val receivedEvents = mutableListOf<UserCreatedEvent>()
 
             val orbit =
                 orbit {
                     service("test-service")
-                    serializer(JacksonEventSerializer())
-                    transport(transport)
+                    serializer(JacksonSerializerFactory())
+                    transport(InMemoryTransportFactory())
 
                     event(UserCreatedEvent::class)
 
-                    handler(
-                        UserCreatedEvent::class,
-                        EventHandler { event ->
-                            receivedEvents.add(event)
-                        },
-                    )
+                    handler(UserCreatedEvent::class) { event ->
+                        receivedEvents.add(event)
+                    }
                 }
 
             orbit.connect()
@@ -257,8 +238,8 @@ class OrbitIntegrationTest :
             val orbit =
                 orbit {
                     service("test-service")
-                    serializer(JacksonEventSerializer())
-                    transport(InMemoryTransport())
+                    serializer(JacksonSerializerFactory())
+                    transport(InMemoryTransportFactory())
 
                     // Note: UserCreatedEvent is NOT registered
                 }

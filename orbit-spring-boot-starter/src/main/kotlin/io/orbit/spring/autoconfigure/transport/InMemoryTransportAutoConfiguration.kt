@@ -1,7 +1,7 @@
 package io.orbit.spring.autoconfigure.transport
 
-import io.orbit.core.transport.MessageTransport
-import io.orbit.transport.inmemory.InMemoryTransport
+import io.orbit.core.transport.TransportFactory
+import io.orbit.transport.inmemory.InMemoryTransportFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -15,9 +15,9 @@ import org.springframework.context.annotation.Configuration
     havingValue = "in-memory",
     matchIfMissing = true,
 )
-@ConditionalOnClass(InMemoryTransport::class)
+@ConditionalOnClass(InMemoryTransportFactory::class)
 class InMemoryTransportAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
-    fun inMemoryTransport(): MessageTransport = InMemoryTransport()
+    fun inMemoryTransportFactory(): TransportFactory = InMemoryTransportFactory()
 }

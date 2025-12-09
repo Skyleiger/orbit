@@ -25,7 +25,7 @@ internal class DefaultEventSubscriber(
     override suspend fun subscribeAll() {
         eventRegistry.definitions.forEach { definition ->
             transport.subscribe(
-                eventType = definition.eventType.value,
+                eventType = definition.eventType,
                 handler = createMessageHandler(definition),
             )
         }
@@ -33,7 +33,7 @@ internal class DefaultEventSubscriber(
 
     override suspend fun unsubscribeAll() {
         eventRegistry.definitions.forEach { definition ->
-            transport.unsubscribe(definition.eventType.value)
+            transport.unsubscribe(definition.eventType)
         }
     }
 

@@ -1,7 +1,7 @@
 package io.orbit.spring.autoconfigure.transport
 
-import io.orbit.core.transport.MessageTransport
-import io.orbit.transport.rabbitmq.RabbitMQTransport
+import io.orbit.core.transport.TransportFactory
+import io.orbit.transport.rabbitmq.RabbitMQTransportFactory
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty
@@ -14,9 +14,9 @@ import org.springframework.context.annotation.Configuration
     name = ["type"],
     havingValue = "rabbitmq",
 )
-@ConditionalOnClass(RabbitMQTransport::class)
-class RabbitMQTransportAutoConfiguration {
+@ConditionalOnClass(RabbitMQTransportFactory::class)
+class RabbitMQTransportAutoConfiguration{
     @Bean
     @ConditionalOnMissingBean
-    fun rabbitMQTransport(): MessageTransport = RabbitMQTransport()
+    fun rabbitMQTransportFactory(): TransportFactory = RabbitMQTransportFactory()
 }

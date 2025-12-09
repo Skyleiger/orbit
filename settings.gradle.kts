@@ -32,6 +32,7 @@ enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 // Subproject configuration
 include(":orbit-core")
+include(":orbit-processor")
 include(":orbit-transport-in-memory")
 include(":orbit-transport-rabbitmq")
 include(":orbit-serialization-jackson")
@@ -39,4 +40,3 @@ include(":orbit-serialization-kotlinx")
 include(":orbit-spring-boot-starter")
 include(":orbit-bom")
 include(":orbit-tests")
-include(":orbit-processor")

@@ -1,5 +1,6 @@
 package io.orbit.core.transport
 
+import io.orbit.core.event.EventType
 import kotlinx.coroutines.runBlocking
 
 interface MessageTransport : AutoCloseable {
@@ -12,11 +13,11 @@ interface MessageTransport : AutoCloseable {
     suspend fun send(message: TransportMessage)
 
     suspend fun subscribe(
-        eventType: String,
+        eventType: EventType,
         handler: MessageHandler,
     )
 
-    suspend fun unsubscribe(eventType: String)
+    suspend fun unsubscribe(eventType: EventType)
 
     override fun close() {
         runBlocking { disconnect() }
