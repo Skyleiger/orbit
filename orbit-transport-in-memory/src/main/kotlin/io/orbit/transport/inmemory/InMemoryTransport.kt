@@ -16,7 +16,6 @@ import io.orbit.core.transport.TransportMessage
  * @param messageBus The shared message bus for inter-transport communication.
  *                   If not provided, creates an isolated bus for this instance only.
  *
- * @since 0.0.1
  */
 class InMemoryTransport(
     private val messageBus: InMemoryMessageBus = InMemoryMessageBus(),

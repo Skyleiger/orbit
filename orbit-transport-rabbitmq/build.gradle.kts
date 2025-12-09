@@ -4,4 +4,7 @@ plugins {
 
 dependencies {
     api(projects.orbitCore)
+
+    implementation(libs.rabbitmq.client)
+    implementation(libs.kotlinx.coroutines)
 }

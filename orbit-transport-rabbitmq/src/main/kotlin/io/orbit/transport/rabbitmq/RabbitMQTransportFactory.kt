@@ -5,7 +5,11 @@ import io.orbit.core.transport.TransportFactory
 
 /**
  * Factory for creating [RabbitMQTransport] instances.
+ *
+ * @param config The RabbitMQ connection and messaging configuration.
  */
-class RabbitMQTransportFactory : TransportFactory {
-    override fun create(serviceIdentity: ServiceIdentity) = RabbitMQTransport()
+class RabbitMQTransportFactory(
+    private val config: RabbitMQTransportConfig,
+) : TransportFactory {
+    override fun create(serviceIdentity: ServiceIdentity) = RabbitMQTransport(config, serviceIdentity)
 }
