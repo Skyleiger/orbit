@@ -13,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.uuid.Uuid
 
 /**
@@ -53,7 +54,7 @@ internal class ConsumerDispatcher(
     private val config: RabbitMQTransportConfig,
     private val coroutineScope: CoroutineScope,
 ) {
-    private val handlers = ConcurrentHashMap<EventType, MutableList<MessageHandler>>()
+    private val handlers = ConcurrentHashMap<EventType, CopyOnWriteArrayList<MessageHandler>>()
     private var consumerTag: String? = null
 
     /**
@@ -96,7 +97,7 @@ internal class ConsumerDispatcher(
         eventType: EventType,
         handler: MessageHandler,
     ) {
-        handlers.computeIfAbsent(eventType) { mutableListOf() }.add(handler)
+        handlers.computeIfAbsent(eventType) { CopyOnWriteArrayList() }.add(handler)
     }
 
     /**
