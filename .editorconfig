@@ -5,3 +5,6 @@ insert_final_newline = true
 
 [*.{kt,kts}]
 ktlint_code_style = ktlint_official
+
+[**/build/generated/**/*]
+ktlint = disabled

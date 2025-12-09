@@ -10,6 +10,10 @@ import io.orbit.core.transport.MessageTransport
 import kotlinx.coroutines.runBlocking
 
 interface Orbit : AutoCloseable {
+    companion object {
+        const val VERSION: String = OrbitBuildConfig.VERSION
+    }
+
     suspend fun connect()
 
     suspend fun disconnect()
