@@ -48,6 +48,7 @@ class InMemoryTransport(
     }
 
     override suspend fun unsubscribe(eventType: EventType) {
+        checkIsConnected()
         messageBus.unsubscribe(serviceIdentity, eventType)
     }
 
