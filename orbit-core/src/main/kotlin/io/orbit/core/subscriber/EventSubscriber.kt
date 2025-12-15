@@ -24,10 +24,14 @@ internal class DefaultEventSubscriber(
 ) : EventSubscriber {
     override suspend fun subscribeAll() {
         eventRegistry.definitions.forEach { definition ->
-            transport.subscribe(
-                eventType = definition.eventType,
-                handler = createMessageHandler(definition),
-            )
+            val handlers = handlerRegistry.getHandlers<Any>(definition.eventType)
+            // Only subscribe if there are handlers for this event type
+            if (handlers.isNotEmpty()) {
+                transport.subscribe(
+                    eventType = definition.eventType,
+                    handler = createMessageHandler(definition),
+                )
+            }
         }
     }
 
