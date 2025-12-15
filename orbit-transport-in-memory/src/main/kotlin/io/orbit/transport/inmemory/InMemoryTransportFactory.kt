@@ -38,5 +38,5 @@ import io.orbit.core.transport.TransportFactory
 class InMemoryTransportFactory : TransportFactory {
     private val sharedMessageBus = InMemoryMessageBus()
 
-    override fun create(serviceIdentity: ServiceIdentity): MessageTransport = InMemoryTransport(sharedMessageBus)
+    override fun create(serviceIdentity: ServiceIdentity): MessageTransport = InMemoryTransport(sharedMessageBus, serviceIdentity)
 }
