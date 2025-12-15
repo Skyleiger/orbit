@@ -21,6 +21,7 @@ fun Project.configureKotlin() {
             optIn.add("kotlin.time.ExperimentalTime")
             optIn.add("kotlinx.serialization.ExperimentalSerializationApi")
             optIn.add("kotlin.uuid.ExperimentalUuidApi")
+            optIn.add("kotlin.concurrent.atomics.ExperimentalAtomicApi")
         }
     }
 }
