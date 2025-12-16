@@ -3,6 +3,8 @@ package io.orbit.transport.rabbitmq.internal
 import com.rabbitmq.client.Channel
 import com.rabbitmq.client.Connection
 import com.rabbitmq.client.ConnectionFactory
+import com.rabbitmq.client.impl.ClientVersion
+import com.rabbitmq.client.impl.LongStringHelper
 import io.orbit.core.Orbit
 import io.orbit.core.service.ServiceIdentity
 import io.orbit.transport.rabbitmq.RabbitMQTransportConfig
@@ -25,11 +27,9 @@ import kotlinx.coroutines.withContext
  * | Property | Description |
  * |----------|-------------|
  * | `connection_name` | `orbit:{serviceName}-{serviceId}` |
- * | `product` | `orbit` |
- * | `version` | Orbit version |
- * | `platform` | Kotlin version |
- * | `service_name` | The service name from [ServiceIdentity] |
- * | `service_id` | The unique service instance ID |
+ * | `orbit_name` | Orbit service name |
+ * | `orbit_version` | Orbit service version |
+ * | `rabbitmq_client_version` | RabbitMQ client version |
  * | `capabilities` | RabbitMQ client capabilities |
  *
  * @param config The RabbitMQ transport configuration.
@@ -60,7 +60,7 @@ internal class ConnectionManager(
 
         connection =
             withContext(Dispatchers.IO) {
-                factory.newConnection(connectionName)
+                factory.newConnection("orbit:${serviceIdentity.source}")
             }
 
         channel =
@@ -108,27 +108,14 @@ internal class ConnectionManager(
             isAutomaticRecoveryEnabled = config.automaticRecoveryEnabled
             networkRecoveryInterval = config.networkRecoveryInterval.inWholeMilliseconds
 
-            clientProperties = buildClientProperties()
+            clientProperties = buildClientProperties(clientProperties)
         }
 
-    private fun buildClientProperties(): Map<String, Any> =
+    private fun buildClientProperties(defaultProperties: Map<String, Any>): Map<String, Any> =
         mapOf(
-            "connection_name" to connectionName,
-            "product" to "orbit",
-            "version" to Orbit.VERSION,
-            "platform" to "Kotlin ${KotlinVersion.CURRENT}",
-            "service_name" to serviceIdentity.name.value,
-            "service_id" to serviceIdentity.id.value,
-            "capabilities" to
-                mapOf(
-                    "publisher_confirms" to true,
-                    "consumer_cancel_notify" to true,
-                    "exchange_exchange_bindings" to true,
-                    "basic.nack" to true,
-                    "connection.blocked" to true,
-                ),
+            "orbit_revision" to Orbit.REVISION,
+            "orbit_version" to Orbit.VERSION,
+            "rabbitmq_client_version" to LongStringHelper.asLongString(ClientVersion.VERSION),
+            "capabilities" to (defaultProperties["capabilities"] ?: emptyMap<String, Any>()),
         )
-
-    private val connectionName: String
-        get() = "orbit:${serviceIdentity.source}"
 }

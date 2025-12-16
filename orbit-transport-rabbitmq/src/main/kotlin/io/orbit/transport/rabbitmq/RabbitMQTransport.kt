@@ -1,5 +1,6 @@
 package io.orbit.transport.rabbitmq
 
+import com.rabbitmq.client.Channel
 import io.orbit.core.event.EventType
 import io.orbit.core.service.ServiceIdentity
 import io.orbit.core.transport.MessageHandler
@@ -19,10 +20,12 @@ import kotlinx.coroutines.cancelChildren
  *
  * This transport adapter uses RabbitMQ as the messaging infrastructure for
  * publishing and consuming events. It implements a topic-based routing pattern
- * where:
+ * with load balancing:
  *
  * - A single **topic exchange** (default: `orbit.events`) is used for all events
- * - Each service instance creates its own **dedicated queue** (named after [ServiceIdentity.source])
+ * - Each **service** (not instance) has a **shared queue** (named after service name)
+ * - All instances of the same service consume from the same queue
+ * - Events are delivered to **only one instance** per service (load balancing)
  * - Event subscriptions create **queue bindings** with the event type as the routing key
  *
  * ## Architecture
@@ -35,8 +38,11 @@ import kotlinx.coroutines.cancelChildren
  *         ▼                 ▼                 ▼
  * ┌───────────────┐ ┌───────────────┐ ┌───────────────┐
  * │ Queue:        │ │ Queue:        │ │ Queue:        │
- * │ user-svc-xxx  │ │ order-svc-yyy │ │ analytics-zzz │
+ * │ email-service │ │ order-service │ │ analytics-svc │
  * └───────────────┘ └───────────────┘ └───────────────┘
+ *    ↓         ↓        ↓         ↓        ↓
+ * Instance1 Instance2  Instance1 Instance2  Instance1
+ *    (Load Balancing)      (Load Balancing)
  * ```
  *
  * ## Metadata
@@ -82,7 +88,7 @@ import kotlinx.coroutines.cancelChildren
  *
  * @param config The RabbitMQ connection and messaging configuration.
  * @param serviceIdentity The identity of this service instance, used to generate
- *                        unique queue names and metadata.
+ *                        queue names and metadata.
  *
  * @see RabbitMQTransportConfig
  * @see MessageTransport
@@ -113,6 +119,10 @@ class RabbitMQTransport(
      * @throws com.rabbitmq.client.AlreadyClosedException if the connection fails
      */
     override suspend fun connect() {
+        if (isConnected()) {
+            return
+        }
+
         val channel = connectionManager.connect()
 
         queueManager.declareEventsExchange(channel)
@@ -134,6 +144,10 @@ class RabbitMQTransport(
      * Handler re-registration is managed by the Orbit core.
      */
     override suspend fun disconnect() {
+        if (!isConnected()) {
+            return
+        }
+
         queueManager.clearBindings()
         consumerDispatcher.clearHandlers()
         connectionManager.disconnect()
@@ -158,10 +172,7 @@ class RabbitMQTransport(
      * @throws IllegalStateException if the transport is not connected.
      */
     override suspend fun send(message: TransportMessage) {
-        val channel =
-            connectionManager.channel
-                ?: error("Transport not connected")
-
+        val channel = resolveChannel()
         queueManager.publish(channel, message, serviceIdentity)
     }
 
@@ -182,10 +193,7 @@ class RabbitMQTransport(
         eventType: EventType,
         handler: MessageHandler,
     ) {
-        val channel =
-            connectionManager.channel
-                ?: error("Transport not connected")
-
+        val channel = resolveChannel()
         queueManager.bindEventType(channel, eventType)
         consumerDispatcher.registerHandler(eventType, handler)
     }
@@ -200,11 +208,10 @@ class RabbitMQTransport(
      * @throws IllegalStateException if the transport is not connected.
      */
     override suspend fun unsubscribe(eventType: EventType) {
-        val channel =
-            connectionManager.channel
-                ?: error("Transport not connected")
-
+        val channel = resolveChannel()
         queueManager.unbindEventType(channel, eventType)
         consumerDispatcher.unregisterHandlers(eventType)
     }
+
+    private fun resolveChannel(): Channel = connectionManager.channel ?: error("Transport not connected")
 }

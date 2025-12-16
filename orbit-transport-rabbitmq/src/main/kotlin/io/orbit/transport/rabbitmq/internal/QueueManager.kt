@@ -10,35 +10,37 @@ import io.orbit.core.transport.TransportMessage
 import io.orbit.transport.rabbitmq.RabbitMQTransportConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.time.Instant
 import java.util.Date
 import java.util.concurrent.CopyOnWriteArraySet
+import kotlin.time.Clock
 
 /**
  * Manages RabbitMQ exchange, queue, and binding operations.
  *
  * This class is responsible for:
  * - Declaring the topic exchange for all events
- * - Declaring the service-specific queue with Orbit metadata
+ * - Declaring the shared service queue with minimal metadata
  * - Managing queue bindings for event subscriptions
  * - Publishing messages to the exchange
  *
  * ## Queue Naming
  *
- * The queue name is derived from [ServiceIdentity.source], resulting in a
- * format like `my-service-abc12345-...`. This ensures each service instance
- * has its own dedicated queue.
+ * The queue name is derived from [ServiceIdentity.name], resulting in a
+ * format like `email-service`. This ensures all instances of the same service
+ * share a queue for load balancing.
  *
  * ## Queue Arguments (Metadata)
  *
- * The queue is created with the following arguments visible in RabbitMQ:
+ * For shared, durable queues, arguments are kept minimal to avoid stale metadata:
  *
  * | Argument | Description |
  * |----------|-------------|
- * | `x-orbit-version` | Orbit version |
- * | `x-orbit-service-name` | The service name |
- * | `x-orbit-service-id` | The unique service instance ID |
+ * | `x-orbit-managed` | Marker that this queue is managed by Orbit |
+ * | `x-orbit-created-version` | Orbit version at queue creation |
  * | `x-orbit-created-at` | ISO 8601 timestamp of queue creation |
+ *
+ * Instance-specific metadata (version, instance ID) is propagated via
+ * **connection properties** and **message headers** instead.
  *
  * ## Message Properties
  *
@@ -61,10 +63,13 @@ internal class QueueManager(
     private val bindings = CopyOnWriteArraySet<EventType>()
 
     /**
-     * The unique queue name for this service instance.
+     * The queue name for this service.
+     *
+     * All instances of the same service share the same queue to enable
+     * load balancing - each event is delivered to only one instance.
      */
     val queueName: String
-        get() = serviceIdentity.source
+        get() = serviceIdentity.name.value
 
     /**
      * Declares the topic exchange for event routing.
@@ -89,6 +94,8 @@ internal class QueueManager(
     /**
      * Declares the service-specific queue with Orbit metadata.
      *
+     * The queue is shared across all instances of the same service to enable
+     * load balancing. Each event is delivered to only one instance.
      * The queue is created with arguments containing Orbit metadata
      * for observability in the RabbitMQ management UI.
      *
@@ -100,9 +107,9 @@ internal class QueueManager(
         withContext(Dispatchers.IO) {
             channel.queueDeclare(
                 queueName,
-                false, // non-durable: queue name is ephemeral (random UUID per instance)
-                false, // non-exclusive: allow reconnection after recovery
-                true, // auto-delete: clean up when connection closes
+                true, // durable: queue survives broker restarts
+                false, // non-exclusive: shared across service instances
+                false, // auto-delete: no auto delete, so that messages are retained when there are no consumers
                 queueArguments,
             )
         }
@@ -160,8 +167,8 @@ internal class QueueManager(
     /**
      * Clears all queue bindings.
      *
-     * This method is called during disconnect to clean up state.
-     * Handler re-registration after reconnect is managed by Orbit core.
+     * This method is called during disconnect to clean up the state.
+     * Handler re-registration after reconnection is managed by Orbit core.
      */
     fun clearBindings() {
         bindings.clear()
@@ -197,10 +204,9 @@ internal class QueueManager(
 
     private fun buildQueueArguments(): Map<String, Any> =
         mapOf(
-            "x-orbit-version" to Orbit.VERSION,
-            "x-orbit-service-name" to serviceIdentity.name.value,
-            "x-orbit-service-id" to serviceIdentity.id.value,
-            "x-orbit-created-at" to Instant.now().toString(),
+            "x-orbit-managed" to true,
+            "x-orbit-created-version" to Orbit.VERSION,
+            "x-orbit-created-at" to Clock.System.now().toString(), // ISO 8601
         )
 
     private fun buildMessageProperties(
@@ -216,6 +222,7 @@ internal class QueueManager(
             .headers(
                 mapOf(
                     "x-orbit-source" to serviceIdentity.source,
+                    "x-orbit-revision" to Orbit.REVISION,
                     "x-orbit-version" to Orbit.VERSION,
                 ),
             ).build()
