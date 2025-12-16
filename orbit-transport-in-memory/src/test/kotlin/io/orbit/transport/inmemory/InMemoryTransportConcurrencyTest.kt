@@ -11,7 +11,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlin.concurrent.atomics.AtomicInt
-import kotlin.concurrent.atomics.ExperimentalAtomicApi
 
 /**
  * Tests for InMemoryTransport thread safety and concurrent operations.

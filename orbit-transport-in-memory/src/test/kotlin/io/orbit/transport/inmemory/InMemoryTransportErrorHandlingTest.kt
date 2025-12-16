@@ -34,13 +34,16 @@ class InMemoryTransportErrorHandlingTest :
                 exception.message shouldContain "not connected"
             }
 
-            test("should not throw when unsubscribing without connection") {
+            test("should throw when unsubscribing without connection") {
                 val factory = InMemoryTransportFactory()
                 val transport = factory.create(TestFactory.createServiceIdentity())
                 val eventType = TestFactory.createEventType()
 
-                // Should not throw - unsubscribe is safe to call when disconnected
-                transport.unsubscribe(eventType)
+                val exception =
+                    shouldThrow<IllegalStateException> {
+                        transport.unsubscribe(eventType)
+                    }
+                exception.message shouldContain "not connected"
             }
         }
 
