@@ -11,6 +11,7 @@ import kotlinx.coroutines.runBlocking
 
 interface Orbit : AutoCloseable {
     companion object {
+        const val NAME: String = OrbitBuildConfig.NAME
         const val VERSION: String = OrbitBuildConfig.VERSION
     }
 

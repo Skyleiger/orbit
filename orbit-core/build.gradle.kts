@@ -11,5 +11,6 @@ dependencies {
 buildConfig {
     packageName("io.orbit.core")
     className("OrbitBuildConfig")
+    buildConfigField("NAME", project.property("name") as String)
     buildConfigField("VERSION", project.version.toString())
 }
