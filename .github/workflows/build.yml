@@ -42,14 +42,14 @@ jobs:
       # Upload test reports, especially on failure
       - name: Upload test reports
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: test-reports
           path: '**/build/reports/tests/test'
 
       # Upload JAR artifacts
       - name: Upload JAR artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: orbit-jars
           path: '**/build/libs/*.jar'

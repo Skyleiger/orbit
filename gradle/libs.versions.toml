@@ -1,21 +1,21 @@
 [versions]
-kotlin = "2.2.21"
+kotlin = "2.3.0"
 kotlinx-serialization-json = "1.9.0"
 kotlinx-coroutines = "1.10.2"
-spring-boot = "4.0.0"
+spring-boot = "4.0.1"
 kotest = "6.0.7"
 testLogger = "4.0.0"
 versions = "0.53.0"
 jackson = "2.20.1"
 ktlint = "13.1.0"
 detekt = "1.23.8"
-ksp = "2.3.3"
+ksp = "2.3.4"
 compile-testing = "0.23.0"
-kctfork = "0.11.1"
-rabbitmq-client = "5.25.0"
-testcontainers = "2.0.2"
+kctfork = "0.12.0"
+rabbitmq-client = "5.28.0"
+testcontainers = "2.0.3"
 slf4j = "2.0.17"
-buildconfig = "6.0.6"
+buildconfig = "6.0.7"
 
 [libraries]
 ksp-api = { module = "com.google.devtools.ksp:symbol-processing-api", version.ref = "ksp" }
