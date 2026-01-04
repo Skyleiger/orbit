@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.orbit.kotlin.conventions)
+    alias(libs.plugins.kotlin.plugin.serialization)
     alias(libs.plugins.buildconfig)
     `java-test-fixtures`
 }
@@ -10,6 +11,7 @@ dependencies {
 
     testFixturesApi(libs.kotest.runner.junit5)
     testFixturesApi(libs.kotest.assertions.core)
+    testFixturesApi(libs.kotlinx.serialization.json)
 }
 
 buildConfig {

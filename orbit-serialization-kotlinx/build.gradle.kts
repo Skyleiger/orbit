@@ -7,4 +7,6 @@ dependencies {
     api(projects.orbitCore)
     api(libs.kotlinx.serialization.json)
     implementation(kotlin("reflect"))
+
+    testImplementation(testFixtures(projects.orbitCore))
 }

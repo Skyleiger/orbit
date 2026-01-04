@@ -5,4 +5,6 @@ plugins {
 dependencies {
     api(projects.orbitCore)
     api(libs.bundles.jackson)
+
+    testImplementation(testFixtures(projects.orbitCore))
 }
