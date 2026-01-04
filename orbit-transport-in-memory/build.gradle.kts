@@ -4,4 +4,6 @@ plugins {
 
 dependencies {
     api(projects.orbitCore)
+
+    testImplementation(testFixtures(projects.orbitCore))
 }

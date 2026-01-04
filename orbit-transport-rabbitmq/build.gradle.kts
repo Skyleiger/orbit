@@ -7,4 +7,8 @@ dependencies {
 
     implementation(libs.rabbitmq.client)
     implementation(libs.kotlinx.coroutines)
+
+    testImplementation(testFixtures(projects.orbitCore))
+    testImplementation(libs.testcontainers.rabbitmq)
+    testRuntimeOnly(libs.slf4j.simple)
 }

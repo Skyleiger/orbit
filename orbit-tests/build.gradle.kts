@@ -14,8 +14,4 @@ dependencies {
     testImplementation(libs.bundles.kotest)
     testImplementation(libs.kotlinx.coroutines)
     testImplementation(libs.bundles.jackson)
-
-    // Infrastructure testing
-    testImplementation(libs.testcontainers.rabbitmq)
-    testRuntimeOnly(libs.slf4j.simple)
 }
