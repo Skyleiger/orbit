@@ -1,38 +1,69 @@
 package io.orbit.integration
 
+import io.kotest.assertions.nondeterministic.eventually
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.orbit.core.event.Event
 import io.orbit.core.orbit
-import io.orbit.serialization.jackson.JacksonSerializerFactory
-import io.orbit.transport.inmemory.InMemoryTransportFactory
-import kotlinx.coroutines.delay
+import io.orbit.core.serializer.SerializerFactory
+import io.orbit.core.transport.TransportFactory
+import kotlinx.serialization.Serializable
+import kotlin.time.Duration.Companion.milliseconds
 
-@Event("test.user.created")
-data class UserCreatedEvent(
-    val userId: String,
-    val email: String,
-)
+/**
+ * Abstract contract test suite for Orbit integration testing.
+ *
+ * All combinations of TransportFactory and SerializerFactory must pass these tests
+ * to ensure they work correctly together in a complete Orbit setup.
+ *
+ * The tests verify:
+ * - Publishing and receiving events
+ * - Multiple event types
+ * - Multiple handlers for the same event
+ * - Service identity and lifecycle
+ * - Event metadata preservation
+ * - Error handling for unregistered events
+ *
+ * Implementations must provide both TransportFactory and SerializerFactory:
+ * ```kotlin
+ * class MyIntegrationTest : IntegrationTestContract() {
+ *     override fun createTransportFactory(): TransportFactory = MyTransportFactory()
+ *     override fun createSerializerFactory(): SerializerFactory = MySerializerFactory()
+ * }
+ * ```
+ */
+abstract class IntegrationTestContract : FunSpec() {
+    /**
+     * Provides the TransportFactory instance for creating transports for testing.
+     * Must be implemented by each test class.
+     */
+    abstract fun createTransportFactory(): TransportFactory
 
-@Event("test.user.updated")
-data class UserUpdatedEvent(
-    val userId: String,
-    val newEmail: String,
-)
+    /**
+     * Provides the SerializerFactory instance for creating serializers for testing.
+     * Must be implemented by each test class.
+     */
+    abstract fun createSerializerFactory(): SerializerFactory
 
-class OrbitIntegrationTest :
-    FunSpec({
-        test("should publish and receive event via InMemoryTransport") {
-            val transport = InMemoryTransportFactory()
+    /**
+     * Timeout in milliseconds for eventual consistency checks.
+     * Override based on transport characteristics (network-based needs longer).
+     */
+    open val eventuallyTimeoutMs: Long = 5000L
+
+    init {
+        test("should publish and receive event via transport") {
+            val transport = createTransportFactory()
+            val serializer = createSerializerFactory()
             val receivedEvents = mutableListOf<UserCreatedEvent>()
 
             // Publisher Orbit
             val publisherOrbit =
                 orbit {
                     service("publisher-service")
-                    serializer(JacksonSerializerFactory())
+                    serializer(serializer)
                     transport(transport)
 
                     event(UserCreatedEvent::class)
@@ -42,7 +73,7 @@ class OrbitIntegrationTest :
             val subscriberOrbit =
                 orbit {
                     service("subscriber-service")
-                    serializer(JacksonSerializerFactory())
+                    serializer(serializer)
                     transport(transport)
 
                     event(UserCreatedEvent::class)
@@ -63,10 +94,11 @@ class OrbitIntegrationTest :
             publisherOrbit.publish(testEvent)
 
             // Give some time for async processing
-            delay(100)
+            eventually(eventuallyTimeoutMs.milliseconds) {
+                receivedEvents.size shouldBe 1
+            }
 
             // Then: Event should be received
-            receivedEvents.size shouldBe 1
             receivedEvents[0].userId shouldBe "user-123"
             receivedEvents[0].email shouldBe "test@example.com"
 
@@ -79,14 +111,15 @@ class OrbitIntegrationTest :
         }
 
         test("should handle multiple event types") {
-            val transport = InMemoryTransportFactory()
+            val transport = createTransportFactory()
+            val serializer = createSerializerFactory()
             val receivedUserCreated = mutableListOf<UserCreatedEvent>()
             val receivedUserUpdated = mutableListOf<UserUpdatedEvent>()
 
             val publisherOrbit =
                 orbit {
                     service("publisher")
-                    serializer(JacksonSerializerFactory())
+                    serializer(serializer)
                     transport(transport)
 
                     event(UserCreatedEvent::class)
@@ -96,7 +129,7 @@ class OrbitIntegrationTest :
             val subscriberOrbit =
                 orbit {
                     service("subscriber")
-                    serializer(JacksonSerializerFactory())
+                    serializer(serializer)
                     transport(transport)
 
                     event(UserCreatedEvent::class)
@@ -119,12 +152,12 @@ class OrbitIntegrationTest :
             publisherOrbit.publish(UserUpdatedEvent("user-1", "updated@example.com"))
             publisherOrbit.publish(UserCreatedEvent("user-2", "user2@example.com"))
 
-            delay(100)
+            eventually(eventuallyTimeoutMs.milliseconds) {
+                receivedUserCreated.size shouldBe 2
+                receivedUserUpdated.size shouldBe 1
+            }
 
             // Then
-            receivedUserCreated.size shouldBe 2
-            receivedUserUpdated.size shouldBe 1
-
             receivedUserCreated.map { it.userId } shouldContainExactly listOf("user-1", "user-2")
             receivedUserUpdated[0].newEmail shouldBe "updated@example.com"
 
@@ -133,14 +166,16 @@ class OrbitIntegrationTest :
         }
 
         test("should support multiple handlers for same event") {
+            val transport = createTransportFactory()
+            val serializer = createSerializerFactory()
             val handler1Events = mutableListOf<UserCreatedEvent>()
             val handler2Events = mutableListOf<UserCreatedEvent>()
 
             val subscriberOrbit =
                 orbit {
                     service("subscriber")
-                    serializer(JacksonSerializerFactory())
-                    transport(InMemoryTransportFactory())
+                    serializer(serializer)
+                    transport(transport)
 
                     event(UserCreatedEvent::class)
 
@@ -158,12 +193,12 @@ class OrbitIntegrationTest :
             // When
             subscriberOrbit.publish(UserCreatedEvent("user-1", "test@example.com"))
 
-            delay(100)
+            eventually(eventuallyTimeoutMs.milliseconds) {
+                handler1Events.size shouldBe 1
+                handler2Events.size shouldBe 1
+            }
 
             // Then: Both handlers should be called
-            handler1Events.size shouldBe 1
-            handler2Events.size shouldBe 1
-
             handler1Events[0].userId shouldBe "user-1"
             handler2Events[0].userId shouldBe "user-1"
 
@@ -171,12 +206,15 @@ class OrbitIntegrationTest :
         }
 
         test("should generate unique service IDs") {
+            val transport = createTransportFactory()
+            val serializer = createSerializerFactory()
+
             // Given - create two Orbit instances with same service name
             val orbit1 =
                 orbit {
                     service("test-service")
-                    serializer(JacksonSerializerFactory())
-                    transport(InMemoryTransportFactory())
+                    serializer(serializer)
+                    transport(transport)
 
                     event(UserCreatedEvent::class)
                 }
@@ -184,8 +222,8 @@ class OrbitIntegrationTest :
             val orbit2 =
                 orbit {
                     service("test-service")
-                    serializer(JacksonSerializerFactory())
-                    transport(InMemoryTransportFactory())
+                    serializer(serializer)
+                    transport(transport)
 
                     event(UserCreatedEvent::class)
                 }
@@ -203,14 +241,15 @@ class OrbitIntegrationTest :
         }
 
         test("should preserve event metadata") {
-            // Given: Using factory pattern
+            val transport = createTransportFactory()
+            val serializer = createSerializerFactory()
             val receivedEvents = mutableListOf<UserCreatedEvent>()
 
             val orbit =
                 orbit {
                     service("test-service")
-                    serializer(JacksonSerializerFactory())
-                    transport(InMemoryTransportFactory())
+                    serializer(serializer)
+                    transport(transport)
 
                     event(UserCreatedEvent::class)
 
@@ -224,22 +263,26 @@ class OrbitIntegrationTest :
             // When
             orbit.publish(UserCreatedEvent("user-1", "test@example.com"))
 
-            delay(100)
+            eventually(eventuallyTimeoutMs.milliseconds) {
+                receivedEvents.size shouldBe 1
+            }
 
             // Then
-            receivedEvents.size shouldBe 1
             receivedEvents[0] shouldNotBe null
 
             orbit.close()
         }
 
         test("should fail when publishing unregistered event") {
+            val transport = createTransportFactory()
+            val serializer = createSerializerFactory()
+
             // Given
             val orbit =
                 orbit {
                     service("test-service")
-                    serializer(JacksonSerializerFactory())
-                    transport(InMemoryTransportFactory())
+                    serializer(serializer)
+                    transport(transport)
 
                     // Note: UserCreatedEvent is NOT registered
                 }
@@ -256,4 +299,19 @@ class OrbitIntegrationTest :
 
             orbit.close()
         }
-    })
+    }
+}
+
+@Event("test.user.created")
+@Serializable
+data class UserCreatedEvent(
+    val userId: String,
+    val email: String,
+)
+
+@Event("test.user.updated")
+@Serializable
+data class UserUpdatedEvent(
+    val userId: String,
+    val newEmail: String,
+)

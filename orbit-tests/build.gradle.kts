@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.orbit.kotlin.conventions)
+    alias(libs.plugins.kotlin.plugin.serialization)
 }
 
 dependencies {
@@ -14,4 +15,6 @@ dependencies {
     testImplementation(libs.bundles.kotest)
     testImplementation(libs.kotlinx.coroutines)
     testImplementation(libs.bundles.jackson)
+    testImplementation(libs.testcontainers.rabbitmq)
+    testRuntimeOnly(libs.slf4j.simple)
 }
