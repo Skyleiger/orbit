@@ -14,6 +14,15 @@ dependencies {
     compileOnly(projects.orbitTransportRabbitmq)
     compileOnly(projects.orbitSerializationJackson)
     compileOnly(projects.orbitSerializationKotlinx)
+
+    testImplementation(libs.spring.boot.starter.test)
+    testImplementation(libs.bundles.kotest)
+    testImplementation(libs.kotlinx.coroutines)
+    testImplementation(libs.mockk)
+    testImplementation(projects.orbitTransportInMemory)
+    testImplementation(projects.orbitTransportRabbitmq)
+    testImplementation(projects.orbitSerializationJackson)
+    testImplementation(projects.orbitSerializationKotlinx)
 }
 
 tasks.named("bootJar") {
