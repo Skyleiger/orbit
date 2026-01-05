@@ -10,9 +10,7 @@ class OrbitLifecycleManager(
 ) : SmartLifecycle {
     override fun start() {
         runBlocking {
-            if (!orbit.isConnected()) {
-                orbit.connect()
-            }
+            orbit.connect()
         }
     }
 
