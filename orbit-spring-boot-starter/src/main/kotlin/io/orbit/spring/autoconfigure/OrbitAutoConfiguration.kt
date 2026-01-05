@@ -21,9 +21,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationContext
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.core.MethodIntrospector
-import org.springframework.core.annotation.AnnotatedElementUtils
-import java.lang.reflect.Method
+import org.springframework.context.annotation.Scope
 import kotlin.reflect.KClass
 import kotlin.reflect.jvm.kotlinFunction
 import io.orbit.spring.annotation.EventHandler as EventHandlerAnnotation
@@ -41,6 +39,7 @@ class OrbitAutoConfiguration(
     private val applicationContext: ApplicationContext,
 ) {
     @Bean
+    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     @ConditionalOnMissingBean
     fun orbitBuilder(
         serializerFactory: SerializerFactory,
