@@ -91,6 +91,16 @@ class OrbitAutoConfigurationTest :
                         orbit.shouldBeInstanceOf<CustomOrbit>()
                     }
             }
+
+            test("should respect @ConditionalOnMissingBean for OrbitLifecycleManager") {
+                contextRunner
+                    .withPropertyValues("orbit.service.name=test-service")
+                    .withUserConfiguration(CustomLifecycleManagerConfig::class.java)
+                    .run { context ->
+                        val lifecycleManager = context.getBean<OrbitLifecycleManager>()
+                        lifecycleManager.shouldBeInstanceOf<CustomOrbitLifecycleManager>()
+                    }
+            }
         }
 
         context("Service Name Resolution") {
@@ -352,6 +362,16 @@ class CustomOrbit : Orbit {
 
     override fun close() {}
 }
+
+@Configuration
+class CustomLifecycleManagerConfig {
+    @Bean
+    fun orbitLifecycleManager(orbit: Orbit) = CustomOrbitLifecycleManager(orbit)
+}
+
+class CustomOrbitLifecycleManager(
+    orbit: Orbit,
+) : OrbitLifecycleManager(orbit, true)
 
 // ============================================================================
 // Test Events

@@ -64,6 +64,7 @@ class OrbitAutoConfiguration(
     fun orbit(builder: OrbitBuilder): Orbit = builder.build()
 
     @Bean
+    @ConditionalOnMissingBean
     fun orbitLifecycleManager(orbit: Orbit): OrbitLifecycleManager = OrbitLifecycleManager(orbit, properties.autoStartup)
 
     private fun resolveServiceName(): String {
