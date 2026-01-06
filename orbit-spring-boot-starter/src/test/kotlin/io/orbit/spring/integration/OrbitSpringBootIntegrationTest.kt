@@ -168,7 +168,7 @@ class SuspendEventHandler {
     @Suppress("unused") // invoked via reflection
     @EventHandler
     suspend fun handle(event: IntegrationEvent) {
-        delay(10) // Simulate async work
+        delay(1L) // Simulate async work
         receivedEvents.add(event)
     }
 }

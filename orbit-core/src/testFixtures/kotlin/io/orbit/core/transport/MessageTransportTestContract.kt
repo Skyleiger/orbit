@@ -11,7 +11,6 @@ import io.orbit.core.service.ServiceIdentity
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -177,11 +176,19 @@ abstract class MessageTransportTestContract : FunSpec() {
 
                 transport.subscribe(subscribedEventType, createHandler { receivedMessages.add(it) })
 
-                val message = createMessage(eventType = unsubscribedEventType.value)
+                // Send a message that should NOT be delivered
+                val message = createMessage(id = "unsubscribed-msg", eventType = unsubscribedEventType.value)
                 transport.send(message)
 
-                delay(eventuallyTimeoutMs)
-                receivedMessages.size shouldBe 0
+                // Send a probe message that SHOULD be delivered to ensure processing has happened
+                val probeMessage = createMessage(id = "probe-msg", eventType = subscribedEventType.value)
+                transport.send(probeMessage)
+
+                eventually(eventuallyTimeoutMs.milliseconds) {
+                    receivedMessages.any { it.messageId == "probe-msg" } shouldBe true
+                }
+
+                receivedMessages.any { it.messageId == "unsubscribed-msg" } shouldBe false
 
                 transport.disconnect()
             }
@@ -225,14 +232,23 @@ abstract class MessageTransportTestContract : FunSpec() {
                 val transport = createTransport()
                 transport.connect()
 
-                val eventType = createEventType()
+                val eventType = createEventType("main-event")
+                val probeEventType = createEventType("probe-event")
                 val receivedMessages = mutableListOf<TransportMessage>()
+                val probeMessages = mutableListOf<TransportMessage>()
 
                 transport.subscribe(eventType, createHandler { receivedMessages.add(it) })
+                transport.subscribe(probeEventType, createHandler { probeMessages.add(it) })
                 transport.unsubscribe(eventType)
 
-                transport.send(createMessage())
-                delay(eventuallyTimeoutMs)
+                // Send a message that should NOT be delivered
+                transport.send(createMessage(id = "msg-after-unsubscribe", eventType = eventType.value))
+                // Send a probe message that SHOULD be delivered
+                transport.send(createMessage(id = "probe-msg", eventType = probeEventType.value))
+
+                eventually(eventuallyTimeoutMs.milliseconds) {
+                    probeMessages.any { it.messageId == "probe-msg" } shouldBe true
+                }
 
                 receivedMessages.size shouldBe 0
 
@@ -243,15 +259,26 @@ abstract class MessageTransportTestContract : FunSpec() {
                 val transport = createTransport()
                 transport.connect()
 
-                val eventType = createEventType()
+                val eventType = createEventType("test-event")
                 var messageCount = 0
 
                 transport.subscribe(eventType, createHandler { messageCount++ })
                 transport.disconnect()
 
+                // Reconnect - should have no previous subscriptions
                 transport.connect()
-                transport.send(createMessage())
-                delay(eventuallyTimeoutMs)
+
+                val probeEventType = createEventType("probe-event")
+                var probeCount = 0
+                transport.subscribe(probeEventType, createHandler { probeCount++ })
+
+                // Send message to previously subscribed event type and new probe type
+                transport.send(createMessage(id = "msg-old-subscription", eventType = eventType.value))
+                transport.send(createMessage(id = "probe-msg", eventType = probeEventType.value))
+
+                eventually(eventuallyTimeoutMs.milliseconds) {
+                    probeCount shouldBe 1
+                }
 
                 messageCount shouldBe 0
 
