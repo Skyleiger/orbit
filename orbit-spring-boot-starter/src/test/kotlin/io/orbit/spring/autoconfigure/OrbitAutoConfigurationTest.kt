@@ -20,6 +20,7 @@ import org.springframework.boot.autoconfigure.AutoConfigurations
 import org.springframework.boot.test.context.runner.ApplicationContextRunner
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.core.annotation.Order
 import org.springframework.stereotype.Component
 import kotlin.time.Duration.Companion.seconds
 
@@ -99,6 +100,27 @@ class OrbitAutoConfigurationTest :
                     .run { context ->
                         val lifecycleManager = context.getBean<OrbitLifecycleManager>()
                         lifecycleManager.shouldBeInstanceOf<CustomOrbitLifecycleManager>()
+                    }
+            }
+
+            test("should apply customizer to OrbitBuilder") {
+                contextRunner
+                    .withPropertyValues("orbit.service.name=test-service")
+                    .withUserConfiguration(SingleCustomizerConfig::class.java)
+                    .run { context ->
+                        context.getBean<Orbit>() shouldNotBe null
+                        val customizer = context.getBean<SingleCustomizerConfig>()
+                        customizer.called shouldBe true
+                    }
+            }
+
+            test("should apply multiple customizers in order") {
+                contextRunner
+                    .withPropertyValues("orbit.service.name=test-service")
+                    .withUserConfiguration(OrderedCustomizersConfig::class.java)
+                    .run { context ->
+                        val config = context.getBean<OrderedCustomizersConfig>()
+                        config.callOrder shouldBe listOf("first", "second")
                     }
             }
         }
@@ -386,3 +408,33 @@ data class TestEvent(
 data class AnotherTestEvent(
     val value: Int,
 )
+
+@Configuration
+class SingleCustomizerConfig {
+    var called = false
+
+    @Bean
+    fun customizer() =
+        OrbitBuilderCustomizer {
+            called = true
+        }
+}
+
+@Configuration
+class OrderedCustomizersConfig {
+    val callOrder = mutableListOf<String>()
+
+    @Bean
+    @Order(1)
+    fun firstCustomizer() =
+        OrbitBuilderCustomizer {
+            callOrder.add("first")
+        }
+
+    @Bean
+    @Order(2)
+    fun secondCustomizer() =
+        OrbitBuilderCustomizer {
+            callOrder.add("second")
+        }
+}
