@@ -12,6 +12,7 @@ import io.orbit.spring.autoconfigure.transport.InMemoryTransportAutoConfiguratio
 import io.orbit.spring.autoconfigure.transport.RabbitMQTransportAutoConfiguration
 import io.orbit.spring.event.SpringEventHandlerDiscovery
 import io.orbit.spring.lifecycle.OrbitLifecycleManager
+import org.springframework.beans.factory.ObjectProvider
 import org.springframework.beans.factory.config.ConfigurableBeanFactory
 import org.springframework.boot.autoconfigure.AutoConfigureAfter
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
@@ -40,23 +41,36 @@ class OrbitAutoConfiguration(
     fun orbitBuilder(
         serializerFactory: SerializerFactory,
         transportFactory: TransportFactory,
-    ): OrbitBuilder =
-        DefaultOrbitBuilder()
-            .service(resolveServiceName())
-            .serializer(serializerFactory)
-            .transport(transportFactory)
-            .registerDiscoveredHandlers()
+        customizers: ObjectProvider<OrbitBuilderCustomizer>,
+    ): OrbitBuilder {
+        val builder =
+            DefaultOrbitBuilder()
+                .service(resolveServiceName())
+                .serializer(serializerFactory)
+                .transport(transportFactory)
 
-    private fun OrbitBuilder.registerDiscoveredHandlers(): OrbitBuilder {
+        discoverHandlers(builder)
+        applyCustomizers(builder, customizers)
+
+        return builder
+    }
+
+    private fun discoverHandlers(builder: OrbitBuilder) {
         SpringEventHandlerDiscovery(applicationContext)
             .discoverEventHandlers()
             .forEach { (eventClass, handlers) ->
                 handlers.forEach { handler ->
                     @Suppress("UNCHECKED_CAST")
-                    handler(eventClass as KClass<Any>, handler as EventHandler<Any>)
+                    builder.handler(eventClass as KClass<Any>, handler as EventHandler<Any>)
                 }
             }
-        return this
+    }
+
+    private fun applyCustomizers(
+        builder: OrbitBuilder,
+        customizers: ObjectProvider<OrbitBuilderCustomizer>,
+    ) {
+        customizers.orderedStream().forEach { it.customize(builder) }
     }
 
     @Bean

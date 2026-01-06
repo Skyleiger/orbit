@@ -101,6 +101,27 @@ class OrbitAutoConfigurationTest :
                         lifecycleManager.shouldBeInstanceOf<CustomOrbitLifecycleManager>()
                     }
             }
+
+            test("should apply customizer to OrbitBuilder") {
+                contextRunner
+                    .withPropertyValues("orbit.service.name=test-service")
+                    .withUserConfiguration(SingleCustomizerConfig::class.java)
+                    .run { context ->
+                        context.getBean<Orbit>() shouldNotBe null
+                        val customizer = context.getBean<SingleCustomizerConfig>()
+                        customizer.called shouldBe true
+                    }
+            }
+
+            test("should apply multiple customizers in order") {
+                contextRunner
+                    .withPropertyValues("orbit.service.name=test-service")
+                    .withUserConfiguration(OrderedCustomizersConfig::class.java)
+                    .run { context ->
+                        val config = context.getBean<OrderedCustomizersConfig>()
+                        config.callOrder shouldBe listOf("first", "second")
+                    }
+            }
         }
 
         context("Service Name Resolution") {
