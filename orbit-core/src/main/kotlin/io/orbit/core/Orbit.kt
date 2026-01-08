@@ -9,7 +9,7 @@ import io.orbit.core.subscriber.EventSubscriber
 import io.orbit.core.transport.MessageTransport
 import kotlinx.coroutines.runBlocking
 
-interface Orbit : AutoCloseable {
+sealed interface Orbit : AutoCloseable {
     companion object {
         const val REVISION: String = OrbitBuildConfig.REVISION
         const val VERSION: String = OrbitBuildConfig.VERSION

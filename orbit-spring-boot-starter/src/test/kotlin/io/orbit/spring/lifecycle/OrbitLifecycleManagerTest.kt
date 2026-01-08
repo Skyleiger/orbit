@@ -7,6 +7,9 @@ import io.mockk.confirmVerified
 import io.mockk.mockk
 import io.mockk.spyk
 import io.orbit.core.Orbit
+import io.orbit.core.orbit
+import io.orbit.serialization.jackson.JacksonSerializerFactory
+import io.orbit.transport.inmemory.InMemoryTransportFactory
 
 /**
  * Test suite for [OrbitLifecycleManager].
@@ -22,7 +25,7 @@ class OrbitLifecycleManagerTest :
 
         context("Lifecycle State Transitions") {
             test("should start Orbit and transition to running state") {
-                val orbit = spyk(TestOrbit())
+                val orbit = spyk(createTestOrbit())
                 val manager = OrbitLifecycleManager(orbit, autoStartup = false)
 
                 manager.isRunning shouldBe false
@@ -34,7 +37,7 @@ class OrbitLifecycleManagerTest :
             }
 
             test("should stop Orbit and transition to stopped state") {
-                val orbit = spyk(TestOrbit())
+                val orbit = spyk(createTestOrbit())
                 val manager = OrbitLifecycleManager(orbit, autoStartup = false)
 
                 manager.start()
@@ -47,7 +50,7 @@ class OrbitLifecycleManagerTest :
             }
 
             test("should handle complete lifecycle: start -> stop -> start") {
-                val orbit = spyk(TestOrbit())
+                val orbit = spyk(createTestOrbit())
                 val manager = OrbitLifecycleManager(orbit, autoStartup = false)
 
                 // First cycle
@@ -94,7 +97,7 @@ class OrbitLifecycleManagerTest :
             }
 
             test("should reflect Orbit connection state in isRunning()") {
-                val orbit = spyk(TestOrbit())
+                val orbit = spyk(createTestOrbit())
                 val manager = OrbitLifecycleManager(orbit, autoStartup = false)
 
                 // Initial state
@@ -111,29 +114,9 @@ class OrbitLifecycleManagerTest :
         }
     })
 
-/**
- * Simple test implementation of Orbit for testing lifecycle behavior.
- */
-private class TestOrbit(
-    initiallyConnected: Boolean = false,
-) : Orbit {
-    private var connected = initiallyConnected
-
-    override suspend fun connect() {
-        connected = true
+private fun createTestOrbit(): Orbit =
+    orbit {
+        service("test-service")
+        transport(InMemoryTransportFactory())
+        serializer(JacksonSerializerFactory())
     }
-
-    override suspend fun disconnect() {
-        connected = false
-    }
-
-    override suspend fun isConnected(): Boolean = connected
-
-    override suspend fun publish(event: Any) {
-        // Not needed for lifecycle tests
-    }
-
-    override fun close() {
-        // Not needed for lifecycle tests
-    }
-}

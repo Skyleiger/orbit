@@ -6,14 +6,15 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
-import io.kotest.matchers.types.shouldBeInstanceOf
 import io.orbit.core.Orbit
-import io.orbit.core.OrbitBuilder
 import io.orbit.core.event.Event
+import io.orbit.core.orbit
+import io.orbit.serialization.jackson.JacksonSerializerFactory
 import io.orbit.spring.annotation.EventHandler
 import io.orbit.spring.autoconfigure.serialization.JacksonSerializerAutoConfiguration
 import io.orbit.spring.autoconfigure.transport.InMemoryTransportAutoConfiguration
 import io.orbit.spring.lifecycle.OrbitLifecycleManager
+import io.orbit.transport.inmemory.InMemoryTransportFactory
 import kotlinx.coroutines.runBlocking
 import org.springframework.beans.factory.getBean
 import org.springframework.boot.autoconfigure.AutoConfigurations
@@ -52,13 +53,12 @@ class OrbitAutoConfigurationTest :
                 contextRunner
                     .withPropertyValues("orbit.service.name=test-service")
                     .run { context ->
-                        context.getBean<OrbitBuilder>() shouldNotBe null
                         context.getBean<Orbit>() shouldNotBe null
                         context.getBean<OrbitLifecycleManager>() shouldNotBe null
                     }
             }
 
-            test("should inject SerializerFactory and TransportFactory into OrbitBuilder") {
+            test("should inject SerializerFactory and TransportFactory into Orbit") {
                 contextRunner
                     .withPropertyValues("orbit.service.name=test-service")
                     .run { context ->
@@ -73,37 +73,23 @@ class OrbitAutoConfigurationTest :
                     }
             }
 
-            test("should respect @ConditionalOnMissingBean for OrbitBuilder") {
-                contextRunner
-                    .withPropertyValues("orbit.service.name=test-service")
-                    .withUserConfiguration(CustomOrbitBuilderConfig::class.java)
-                    .run { context ->
-                        val builder = context.getBean<OrbitBuilder>()
-                        builder.shouldBeInstanceOf<CustomOrbitBuilder>()
-                    }
-            }
-
             test("should respect @ConditionalOnMissingBean for Orbit") {
                 contextRunner
                     .withPropertyValues("orbit.service.name=test-service")
                     .withUserConfiguration(CustomOrbitConfig::class.java)
                     .run { context ->
                         val orbit = context.getBean<Orbit>()
-                        orbit.shouldBeInstanceOf<CustomOrbit>()
+                        orbit shouldNotBe null
+
+                        // Autoconfigured bean is "orbit" -> must NOT be present
+                        context.containsBean("orbit") shouldBe false
+
+                        // User bean should be present
+                        context.containsBean("customOrbit") shouldBe true
                     }
             }
 
-            test("should respect @ConditionalOnMissingBean for OrbitLifecycleManager") {
-                contextRunner
-                    .withPropertyValues("orbit.service.name=test-service")
-                    .withUserConfiguration(CustomLifecycleManagerConfig::class.java)
-                    .run { context ->
-                        val lifecycleManager = context.getBean<OrbitLifecycleManager>()
-                        lifecycleManager.shouldBeInstanceOf<CustomOrbitLifecycleManager>()
-                    }
-            }
-
-            test("should apply customizer to OrbitBuilder") {
+            test("should apply customizer to Orbit") {
                 contextRunner
                     .withPropertyValues("orbit.service.name=test-service")
                     .withUserConfiguration(SingleCustomizerConfig::class.java)
@@ -129,6 +115,15 @@ class OrbitAutoConfigurationTest :
             test("should use orbit.service.name when configured") {
                 contextRunner
                     .withPropertyValues("orbit.service.name=my-service")
+                    .run { context ->
+                        context.startupFailure shouldBe null
+                        context.getBean<Orbit>() shouldNotBe null
+                    }
+            }
+
+            test("should use spring.application.name as service name when orbit.service.name is not configured") {
+                contextRunner
+                    .withPropertyValues("spring.application.name=my-app")
                     .run { context ->
                         context.startupFailure shouldBe null
                         context.getBean<Orbit>() shouldNotBe null
@@ -345,55 +340,15 @@ class SuspendEventHandler {
 // ============================================================================
 
 @Configuration
-class CustomOrbitBuilderConfig {
-    @Bean
-    fun orbitBuilder() = CustomOrbitBuilder()
-}
-
-class CustomOrbitBuilder : OrbitBuilder {
-    override fun service(serviceName: String) = this
-
-    override fun serializer(factory: io.orbit.core.serializer.SerializerFactory) = this
-
-    override fun transport(factory: io.orbit.core.transport.TransportFactory) = this
-
-    override fun event(eventClass: kotlin.reflect.KClass<*>) = this
-
-    override fun <E : Any> handler(
-        eventClass: kotlin.reflect.KClass<E>,
-        handler: io.orbit.core.handler.EventHandler<E>,
-    ) = this
-
-    override fun build(): Orbit = CustomOrbit()
-}
-
-@Configuration
 class CustomOrbitConfig {
     @Bean
-    fun orbit() = CustomOrbit()
+    fun customOrbit(): Orbit =
+        orbit {
+            service("custom-service")
+            transport(InMemoryTransportFactory())
+            serializer(JacksonSerializerFactory())
+        }
 }
-
-class CustomOrbit : Orbit {
-    override suspend fun connect() {}
-
-    override suspend fun disconnect() {}
-
-    override suspend fun isConnected() = false
-
-    override suspend fun publish(event: Any) {}
-
-    override fun close() {}
-}
-
-@Configuration
-class CustomLifecycleManagerConfig {
-    @Bean
-    fun orbitLifecycleManager(orbit: Orbit) = CustomOrbitLifecycleManager(orbit)
-}
-
-class CustomOrbitLifecycleManager(
-    orbit: Orbit,
-) : OrbitLifecycleManager(orbit, true)
 
 // ============================================================================
 // Test Events
@@ -415,7 +370,7 @@ class SingleCustomizerConfig {
 
     @Bean
     fun customizer() =
-        OrbitBuilderCustomizer {
+        OrbitCustomizer {
             called = true
         }
 }
@@ -427,14 +382,14 @@ class OrderedCustomizersConfig {
     @Bean
     @Order(1)
     fun firstCustomizer() =
-        OrbitBuilderCustomizer {
+        OrbitCustomizer {
             callOrder.add("first")
         }
 
     @Bean
     @Order(2)
     fun secondCustomizer() =
-        OrbitBuilderCustomizer {
+        OrbitCustomizer {
             callOrder.add("second")
         }
 }

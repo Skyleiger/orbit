@@ -17,7 +17,7 @@ import io.orbit.spring.annotation.EventHandler as EventHandlerAnnotation
  *
  * This class scans the Spring [ApplicationContext] for beans containing methods
  * annotated with [io.orbit.spring.annotation.EventHandler] and creates appropriate
- * adapters based on whether the method is a Kotlin suspend function or regular Java method.
+ * adapters based on whether the method is a Kotlin function or regular Java method.
  *
  * ## Discovery Process
  * 1. Scan all bean definitions in the application context
@@ -27,7 +27,7 @@ import io.orbit.spring.annotation.EventHandler as EventHandlerAnnotation
  *
  * ## Supported Handler Types
  * - Regular Java methods: `fun handleEvent(event: MyEvent)`
- * - Kotlin suspend functions: `suspend fun handleEvent(event: MyEvent)`
+ * - Kotlin functions: `fun handleEvent(event: MyEvent)`
  *
  * @param applicationContext The Spring application context to scan for event handlers
  */

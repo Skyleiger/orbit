@@ -4,7 +4,7 @@ import io.orbit.core.Orbit
 import kotlinx.coroutines.runBlocking
 import org.springframework.context.SmartLifecycle
 
-open class OrbitLifecycleManager(
+class OrbitLifecycleManager(
     private val orbit: Orbit,
     private val autoStartup: Boolean,
 ) : SmartLifecycle {

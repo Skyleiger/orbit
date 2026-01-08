@@ -1,9 +1,9 @@
 package io.orbit.spring.autoconfigure
 
-import io.orbit.core.DefaultOrbitBuilder
 import io.orbit.core.Orbit
 import io.orbit.core.OrbitBuilder
 import io.orbit.core.handler.EventHandler
+import io.orbit.core.orbit
 import io.orbit.core.serializer.SerializerFactory
 import io.orbit.core.transport.TransportFactory
 import io.orbit.spring.autoconfigure.serialization.JacksonSerializerAutoConfiguration
@@ -13,14 +13,12 @@ import io.orbit.spring.autoconfigure.transport.RabbitMQTransportAutoConfiguratio
 import io.orbit.spring.event.SpringEventHandlerDiscovery
 import io.orbit.spring.lifecycle.OrbitLifecycleManager
 import org.springframework.beans.factory.ObjectProvider
-import org.springframework.beans.factory.config.ConfigurableBeanFactory
 import org.springframework.boot.autoconfigure.AutoConfigureAfter
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.ApplicationContext
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.context.annotation.Scope
 import kotlin.reflect.KClass
 
 @Configuration
@@ -36,24 +34,20 @@ class OrbitAutoConfiguration(
     private val applicationContext: ApplicationContext,
 ) {
     @Bean
-    @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     @ConditionalOnMissingBean
-    fun orbitBuilder(
+    fun orbit(
         serializerFactory: SerializerFactory,
         transportFactory: TransportFactory,
-        customizers: ObjectProvider<OrbitBuilderCustomizer>,
-    ): OrbitBuilder {
-        val builder =
-            DefaultOrbitBuilder()
-                .service(resolveServiceName())
-                .serializer(serializerFactory)
-                .transport(transportFactory)
+        customizers: ObjectProvider<OrbitCustomizer>,
+    ): Orbit =
+        orbit {
+            service(resolveServiceName())
+            serializer(serializerFactory)
+            transport(transportFactory)
 
-        discoverHandlers(builder)
-        applyCustomizers(builder, customizers)
-
-        return builder
-    }
+            discoverHandlers(this)
+            applyCustomizers(this, customizers)
+        }
 
     private fun discoverHandlers(builder: OrbitBuilder) {
         SpringEventHandlerDiscovery(applicationContext)
@@ -68,17 +62,12 @@ class OrbitAutoConfiguration(
 
     private fun applyCustomizers(
         builder: OrbitBuilder,
-        customizers: ObjectProvider<OrbitBuilderCustomizer>,
+        customizers: ObjectProvider<OrbitCustomizer>,
     ) {
         customizers.orderedStream().forEach { it.customize(builder) }
     }
 
     @Bean
-    @ConditionalOnMissingBean
-    fun orbit(builder: OrbitBuilder): Orbit = builder.build()
-
-    @Bean
-    @ConditionalOnMissingBean
     fun orbitLifecycleManager(orbit: Orbit): OrbitLifecycleManager = OrbitLifecycleManager(orbit, properties.autoStartup)
 
     private fun resolveServiceName(): String {
@@ -87,6 +76,15 @@ class OrbitAutoConfiguration(
             return serviceName
         }
 
+        // Prefer the Spring Boot standard property. This is reliably available via the Environment,
+        // including in tests using ApplicationContextRunner.
+        val appName = applicationContext.environment.getProperty("spring.application.name")
+        if (!appName.isNullOrBlank()) {
+            return appName
+        }
+
+        // Fallback for non-Boot or custom ApplicationContext setups where the context "applicationName"
+        // is populated by the context implementation rather than Spring Boot configuration.
         val springApplicationName = applicationContext.applicationName
         if (springApplicationName.isNotBlank()) {
             return springApplicationName

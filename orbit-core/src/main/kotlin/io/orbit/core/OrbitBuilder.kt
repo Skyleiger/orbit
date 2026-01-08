@@ -14,7 +14,7 @@ import io.orbit.core.subscriber.DefaultEventSubscriber
 import io.orbit.core.transport.TransportFactory
 import kotlin.reflect.KClass
 
-interface OrbitBuilder {
+sealed interface OrbitBuilder {
     fun service(serviceName: String): OrbitBuilder
 
     fun serializer(factory: SerializerFactory): OrbitBuilder
@@ -31,7 +31,7 @@ interface OrbitBuilder {
     fun build(): Orbit
 }
 
-class DefaultOrbitBuilder : OrbitBuilder {
+private class DefaultOrbitBuilder : OrbitBuilder {
     private var serializerFactory: SerializerFactory? = null
     private var transportFactory: TransportFactory? = null
     private var serviceName: String? = null
@@ -128,7 +128,13 @@ class DefaultOrbitBuilder : OrbitBuilder {
         val eventsByClass = eventDefinitions.associateBy { it.eventClass }
 
         return events.mapKeys { (eventClass, _) ->
-            eventsByClass[eventClass]?.eventType!!
+            val definition = eventsByClass[eventClass]
+            checkNotNull(definition) {
+                "No EventDefinition found for event class ${eventClass.qualifiedName ?: eventClass} " +
+                    "(this is an internal error; the builder should have introspected all registered events)."
+            }
+
+            return@mapKeys definition.eventType
         }
     }
 }

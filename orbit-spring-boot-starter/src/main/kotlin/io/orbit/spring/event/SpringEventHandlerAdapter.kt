@@ -19,6 +19,7 @@ internal class KotlinEventHandlerAdapter<E>(
     private val function: KFunction<*>,
 ) : EventHandler<E> {
     override suspend fun handle(event: E) {
+        // callSuspend works for both suspend and regular Kotlin functions; for non-suspend functions it behaves like a normal call.
         function.callSuspend(bean, event)
     }
 }
