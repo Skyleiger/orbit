@@ -15,7 +15,7 @@ kctfork = "0.12.1"
 rabbitmq-client = "5.29.0"
 testcontainers = "2.0.3"
 slf4j = "2.0.17"
-buildconfig = "6.0.7"
+buildconfig = "6.0.9"
 mockk = "1.14.9"
 
 [libraries]
