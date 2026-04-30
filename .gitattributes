@@ -1,2 +1,5 @@
 # Enforce LF for all text files by default
 * text eol=lf
+
+# Windows batch files require CRLF
+*.bat text eol=crlf
