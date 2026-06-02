@@ -16,7 +16,7 @@ rabbitmq-client = "5.30.0"
 testcontainers = "2.0.5"
 slf4j = "2.0.18"
 buildconfig = "6.0.9"
-mockk = "1.14.9"
+mockk = "1.14.11"
 
 [libraries]
 ksp-api = { module = "com.google.devtools.ksp:symbol-processing-api", version.ref = "ksp" }
