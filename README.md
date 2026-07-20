@@ -4,8 +4,8 @@
 
 ---
 
-![Build Status](https://img.shields.io/badge/build-unknown-lightgrey)
-![Kotlin](https://img.shields.io/badge/Kotlin-2.2-blue.svg?logo=kotlin)
+![Build](https://github.com/Skyleiger/orbit/actions/workflows/build.yml/badge.svg)
+![Kotlin](https://img.shields.io/badge/Kotlin-2.4.10-blue.svg?logo=kotlin)
 ![Java](https://img.shields.io/badge/Java-21-orange.svg?logo=openjdk)
 ![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)
 
