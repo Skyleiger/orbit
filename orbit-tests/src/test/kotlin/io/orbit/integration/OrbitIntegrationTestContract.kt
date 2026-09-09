@@ -2,15 +2,19 @@ package io.orbit.integration
 
 import io.kotest.assertions.nondeterministic.eventually
 import io.kotest.core.spec.style.FunSpec
-import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.orbit.core.Orbit
 import io.orbit.core.event.Event
 import io.orbit.core.orbit
 import io.orbit.core.serializer.SerializerFactory
 import io.orbit.core.transport.TransportFactory
 import kotlinx.serialization.Serializable
+import kotlin.concurrent.atomics.AtomicReference
+import kotlin.concurrent.atomics.update
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.uuid.Uuid
 
 /**
  * Abstract contract test suite for Orbit integration testing.
@@ -53,34 +57,57 @@ abstract class IntegrationTestContract : FunSpec() {
      */
     open val eventuallyTimeoutMs: Long = 5000L
 
+    private val openOrbits = mutableListOf<Orbit>()
+
+    /**
+     * Generates a service name that is unique per test.
+     *
+     * Transports may derive their queue name from the service name, so reusing a name across
+     * tests makes those tests share a queue and compete for each other's messages.
+     */
+    protected fun uniqueServiceName(prefix: String): String = "$prefix-${Uuid.random()}"
+
+    /**
+     * Registers this instance to be disconnected after the current test.
+     *
+     * Assertions run before any explicit close, so without this a failing test would leave a
+     * consumer attached to its queue and disturb the tests that follow.
+     */
+    protected fun Orbit.closeAfterTest(): Orbit = also { openOrbits.add(it) }
+
     init {
+        afterTest {
+            openOrbits.forEach { runCatching { it.disconnect() } }
+            openOrbits.clear()
+        }
+
         test("should publish and receive event via transport") {
             val transport = createTransportFactory()
             val serializer = createSerializerFactory()
-            val receivedEvents = mutableListOf<UserCreatedEvent>()
+            val receivedEvents = AtomicReference<List<UserCreatedEvent>>(emptyList())
 
             // Publisher Orbit
             val publisherOrbit =
                 orbit {
-                    service("publisher-service")
+                    service(uniqueServiceName("publisher-service"))
                     serializer(serializer)
                     transport(transport)
 
                     event(UserCreatedEvent::class)
-                }
+                }.closeAfterTest()
 
             // Subscriber Orbit
             val subscriberOrbit =
                 orbit {
-                    service("subscriber-service")
+                    service(uniqueServiceName("subscriber-service"))
                     serializer(serializer)
                     transport(transport)
 
                     event(UserCreatedEvent::class)
-                    handler(UserCreatedEvent::class) {
-                        receivedEvents.add(it)
+                    handler(UserCreatedEvent::class) { event ->
+                        receivedEvents.update { it + event }
                     }
-                }
+                }.closeAfterTest()
 
             // When: Connect both
             publisherOrbit.connect()
@@ -95,12 +122,12 @@ abstract class IntegrationTestContract : FunSpec() {
 
             // Give some time for async processing
             eventually(eventuallyTimeoutMs.milliseconds) {
-                receivedEvents.size shouldBe 1
+                receivedEvents.load().size shouldBe 1
             }
 
             // Then: Event should be received
-            receivedEvents[0].userId shouldBe "user-123"
-            receivedEvents[0].email shouldBe "test@example.com"
+            receivedEvents.load()[0].userId shouldBe "user-123"
+            receivedEvents.load()[0].email shouldBe "test@example.com"
 
             // Cleanup
             publisherOrbit.close()
@@ -113,36 +140,36 @@ abstract class IntegrationTestContract : FunSpec() {
         test("should handle multiple event types") {
             val transport = createTransportFactory()
             val serializer = createSerializerFactory()
-            val receivedUserCreated = mutableListOf<UserCreatedEvent>()
-            val receivedUserUpdated = mutableListOf<UserUpdatedEvent>()
+            val receivedUserCreated = AtomicReference<List<UserCreatedEvent>>(emptyList())
+            val receivedUserUpdated = AtomicReference<List<UserUpdatedEvent>>(emptyList())
 
             val publisherOrbit =
                 orbit {
-                    service("publisher")
+                    service(uniqueServiceName("publisher"))
                     serializer(serializer)
                     transport(transport)
 
                     event(UserCreatedEvent::class)
                     event(UserUpdatedEvent::class)
-                }
+                }.closeAfterTest()
 
             val subscriberOrbit =
                 orbit {
-                    service("subscriber")
+                    service(uniqueServiceName("subscriber"))
                     serializer(serializer)
                     transport(transport)
 
                     event(UserCreatedEvent::class)
                     event(UserUpdatedEvent::class)
 
-                    handler(UserCreatedEvent::class) {
-                        receivedUserCreated.add(it)
+                    handler(UserCreatedEvent::class) { event ->
+                        receivedUserCreated.update { it + event }
                     }
 
-                    handler(UserUpdatedEvent::class) {
-                        receivedUserUpdated.add(it)
+                    handler(UserUpdatedEvent::class) { event ->
+                        receivedUserUpdated.update { it + event }
                     }
-                }
+                }.closeAfterTest()
 
             publisherOrbit.connect()
             subscriberOrbit.connect()
@@ -153,40 +180,37 @@ abstract class IntegrationTestContract : FunSpec() {
             publisherOrbit.publish(UserCreatedEvent("user-2", "user2@example.com"))
 
             eventually(eventuallyTimeoutMs.milliseconds) {
-                receivedUserCreated.size shouldBe 2
-                receivedUserUpdated.size shouldBe 1
+                receivedUserCreated.load().size shouldBe 2
+                receivedUserUpdated.load().size shouldBe 1
             }
 
-            // Then
-            receivedUserCreated.map { it.userId } shouldContainExactly listOf("user-1", "user-2")
-            receivedUserUpdated[0].newEmail shouldBe "updated@example.com"
-
-            publisherOrbit.close()
-            subscriberOrbit.close()
+            // Then: delivery order is not guaranteed, only which events arrive
+            receivedUserCreated.load().map { it.userId } shouldContainExactlyInAnyOrder listOf("user-1", "user-2")
+            receivedUserUpdated.load()[0].newEmail shouldBe "updated@example.com"
         }
 
         test("should support multiple handlers for same event") {
             val transport = createTransportFactory()
             val serializer = createSerializerFactory()
-            val handler1Events = mutableListOf<UserCreatedEvent>()
-            val handler2Events = mutableListOf<UserCreatedEvent>()
+            val handler1Events = AtomicReference<List<UserCreatedEvent>>(emptyList())
+            val handler2Events = AtomicReference<List<UserCreatedEvent>>(emptyList())
 
             val subscriberOrbit =
                 orbit {
-                    service("subscriber")
+                    service(uniqueServiceName("subscriber"))
                     serializer(serializer)
                     transport(transport)
 
                     event(UserCreatedEvent::class)
 
                     handler(UserCreatedEvent::class) { event ->
-                        handler1Events.add(event)
+                        handler1Events.update { it + event }
                     }
 
                     handler(UserCreatedEvent::class) { event ->
-                        handler2Events.add(event)
+                        handler2Events.update { it + event }
                     }
-                }
+                }.closeAfterTest()
 
             subscriberOrbit.connect()
 
@@ -194,15 +218,13 @@ abstract class IntegrationTestContract : FunSpec() {
             subscriberOrbit.publish(UserCreatedEvent("user-1", "test@example.com"))
 
             eventually(eventuallyTimeoutMs.milliseconds) {
-                handler1Events.size shouldBe 1
-                handler2Events.size shouldBe 1
+                handler1Events.load().size shouldBe 1
+                handler2Events.load().size shouldBe 1
             }
 
             // Then: Both handlers should be called
-            handler1Events[0].userId shouldBe "user-1"
-            handler2Events[0].userId shouldBe "user-1"
-
-            subscriberOrbit.close()
+            handler1Events.load()[0].userId shouldBe "user-1"
+            handler2Events.load()[0].userId shouldBe "user-1"
         }
 
         test("should generate unique service IDs") {
@@ -210,23 +232,25 @@ abstract class IntegrationTestContract : FunSpec() {
             val serializer = createSerializerFactory()
 
             // Given - create two Orbit instances with same service name
+            val serviceName = uniqueServiceName("test-service")
+
             val orbit1 =
                 orbit {
-                    service("test-service")
+                    service(serviceName)
                     serializer(serializer)
                     transport(transport)
 
                     event(UserCreatedEvent::class)
-                }
+                }.closeAfterTest()
 
             val orbit2 =
                 orbit {
-                    service("test-service")
+                    service(serviceName)
                     serializer(serializer)
                     transport(transport)
 
                     event(UserCreatedEvent::class)
-                }
+                }.closeAfterTest()
 
             orbit1.connect()
             orbit2.connect()
@@ -235,28 +259,25 @@ abstract class IntegrationTestContract : FunSpec() {
             // Both instances should be connected successfully
             orbit1.isConnected() shouldBe true
             orbit2.isConnected() shouldBe true
-
-            orbit1.close()
-            orbit2.close()
         }
 
         test("should preserve event metadata") {
             val transport = createTransportFactory()
             val serializer = createSerializerFactory()
-            val receivedEvents = mutableListOf<UserCreatedEvent>()
+            val receivedEvents = AtomicReference<List<UserCreatedEvent>>(emptyList())
 
             val orbit =
                 orbit {
-                    service("test-service")
+                    service(uniqueServiceName("test-service"))
                     serializer(serializer)
                     transport(transport)
 
                     event(UserCreatedEvent::class)
 
                     handler(UserCreatedEvent::class) { event ->
-                        receivedEvents.add(event)
+                        receivedEvents.update { it + event }
                     }
-                }
+                }.closeAfterTest()
 
             orbit.connect()
 
@@ -264,13 +285,11 @@ abstract class IntegrationTestContract : FunSpec() {
             orbit.publish(UserCreatedEvent("user-1", "test@example.com"))
 
             eventually(eventuallyTimeoutMs.milliseconds) {
-                receivedEvents.size shouldBe 1
+                receivedEvents.load().size shouldBe 1
             }
 
             // Then
-            receivedEvents[0] shouldNotBe null
-
-            orbit.close()
+            receivedEvents.load()[0] shouldNotBe null
         }
 
         test("should fail when publishing unregistered event") {
@@ -280,12 +299,12 @@ abstract class IntegrationTestContract : FunSpec() {
             // Given
             val orbit =
                 orbit {
-                    service("test-service")
+                    service(uniqueServiceName("test-service"))
                     serializer(serializer)
                     transport(transport)
 
                     // Note: UserCreatedEvent is NOT registered
-                }
+                }.closeAfterTest()
 
             orbit.connect()
 
@@ -296,8 +315,6 @@ abstract class IntegrationTestContract : FunSpec() {
             } catch (e: IllegalStateException) {
                 e.message shouldBe "Event UserCreatedEvent is not registered"
             }
-
-            orbit.close()
         }
     }
 }

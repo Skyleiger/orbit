@@ -4,6 +4,7 @@ import io.kotest.assertions.nondeterministic.eventually
 import io.kotest.core.extensions.ApplyExtension
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.extensions.spring.SpringExtension
+import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -15,6 +16,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.stereotype.Component
 import org.springframework.test.context.TestPropertySource
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -87,7 +89,8 @@ class OrbitSpringBootIntegrationTest(
 
                 eventually(2.seconds) {
                     firstHandler.receivedEvents shouldHaveSize 3
-                    firstHandler.receivedEvents.map { it.message } shouldBe listOf("event-1", "event-2", "event-3")
+                    firstHandler.receivedEvents.map { it.message } shouldContainExactlyInAnyOrder
+                        listOf("event-1", "event-2", "event-3")
                 }
             }
         }
@@ -168,7 +171,7 @@ class SuspendEventHandler {
     @Suppress("unused") // invoked via reflection
     @EventHandler
     suspend fun handle(event: IntegrationEvent) {
-        delay(1L) // Simulate async work
+        delay(1.milliseconds) // Simulate async work
         receivedEvents.add(event)
     }
 }

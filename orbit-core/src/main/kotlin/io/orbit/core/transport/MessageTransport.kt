@@ -4,6 +4,12 @@ import io.orbit.core.event.EventType
 
 /**
  * Interface for a messaging transport used by Orbit to publish and consume events.
+ *
+ * **Ordering:** delivery order is not guaranteed. Messages may be handled in an order different
+ * from the order in which they were sent, and handlers may be invoked concurrently for different
+ * messages. Events are load balanced across all instances of a service, so a message sent later
+ * may be handled by another instance before an earlier one has completed. Handlers must therefore
+ * be order-independent.
  */
 interface MessageTransport {
     /**
